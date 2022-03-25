@@ -1,9 +1,9 @@
 import asyncio
 
 import httpx
-from pyppeteer import launch
 
 from izba_reader.services import html, rss
+from izba_reader.services.html import get_browser
 
 
 async def fetch_rss_feeds():
@@ -17,10 +17,10 @@ async def fetch_rss_feeds():
 
 
 async def scrap_web():
-    browser = await launch()
-    return await asyncio.gather(
-        *[
-            getattr(html, html_service_name)(browser)
-            for html_service_name in html.__all__
-        ]
-    )
+    async with get_browser() as browser:
+        return await asyncio.gather(
+            *[
+                getattr(html, html_service_name)(browser)
+                for html_service_name in html.__all__
+            ]
+        )

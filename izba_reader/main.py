@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import FastAPI
 
 from izba_reader import timezones
-from izba_reader.models import RssFeedsResponse
+from izba_reader.models import RssFeedsResponse, WebScrapersResponse
 from izba_reader.tasks import fetch_rss_feeds, scrap_web
 
 app = FastAPI()
@@ -26,7 +26,7 @@ async def rss_feeds():
     }
 
 
-@app.get("/web_scrapers")
+@app.get("/web_scrapers", response_model=WebScrapersResponse)
 async def web_scrapers():
     news = list(itertools.chain(*await scrap_web()))
 

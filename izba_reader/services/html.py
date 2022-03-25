@@ -3,39 +3,28 @@ import itertools
 from datetime import date, datetime
 
 from bs4 import BeautifulSoup
-from pyppeteer import launch
 from pyppeteer.browser import Browser
 
+__all__ = ["scrap_cire_pl"]
 
-# TODO: base class etc.
-class CirePl:
-    browser: Browser = None
 
-    def __init__(self, *args: str) -> None:
-        self._urls = args
+async def _get_content(browser: Browser, url: str) -> str:
+    page = await browser.newPage()
+    await page.goto(url, {"waitUntil": ["domcontentloaded", "networkidle0"]})
 
-    async def __ainit__(self):
-        self.browser = await launch()
+    return await page.content()
 
-    async def _fetch(self, url: str) -> str:
-        page = await self.browser.newPage()
-        await page.goto(url, {"waitUntil": ["domcontentloaded", "networkidle0"]})
-        return await page.content()
 
-    async def fetch(self):
-        return list(
-            itertools.chain(
-                *[
-                    self.parse(html)
-                    for html in await asyncio.gather(
-                        *[self._fetch(url) for url in self._urls]
-                    )
-                ]
-            )
+async def scrap_cire_pl(browser: Browser) -> list[dict]:
+    async def _scrap_cire_pl(p: int) -> list[dict]:
+        soup = BeautifulSoup(
+            await _get_content(
+                browser,
+                f"https://www.cire.pl/artykuly/energetyka?p={p}",
+            ),
+            features="html.parser",
         )
 
-    def parse(self, html):
-        soup = BeautifulSoup(html, features="html.parser")
         hrefs = {
             tag["href"]
             for tag in soup.findAll(
@@ -63,11 +52,11 @@ class CirePl:
 
         return [n for n in news if n["date"].date() == date.today()]
 
-
-async def create_cire_pl():
-    cire_pl_ = CirePl(
-        "https://www.cire.pl/artykuly/energetyka?p=1",
-        "https://www.cire.pl/artykuly/energetyka?p=2",
+    return list(
+        itertools.chain(
+            *await asyncio.gather(
+                _scrap_cire_pl(p=1),
+                _scrap_cire_pl(p=2),
+            )
+        )
     )
-    await cire_pl_.__ainit__()
-    return cire_pl_

@@ -1,9 +1,9 @@
 import asyncio
 
 import httpx
+from pyppeteer import launch
 
-from izba_reader.services import rss
-from izba_reader.services.html import create_cire_pl
+from izba_reader.services import html, rss
 
 
 async def fetch_rss_feeds():
@@ -17,8 +17,10 @@ async def fetch_rss_feeds():
 
 
 async def scrap_web():
-    # TODO: tasks auto collecting
-    cire_pl = await create_cire_pl()
-
-    results = await asyncio.gather(cire_pl.fetch())
-    return results
+    browser = await launch()
+    return await asyncio.gather(
+        *[
+            getattr(html, html_service_name)(browser)
+            for html_service_name in html.__all__
+        ]
+    )

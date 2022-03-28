@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import BackgroundTasks, FastAPI
 
 from izba_reader import routes, timezones
-from izba_reader.models import WebScrapersResponse
+from izba_reader.models import RssFeedsResponse, WebScrapersResponse
 from izba_reader.services.cache import get_cache, set_cache
 from izba_reader.tasks import fetch_rss_feeds, scrap_web
 
@@ -16,7 +16,7 @@ def hello_world() -> dict:
     return {"hello": "world"}
 
 
-@app.get(routes.RSS_FEEDS)
+@app.get(routes.RSS_FEEDS, response_model=RssFeedsResponse)
 async def rss_feeds(background_tasks: BackgroundTasks) -> dict:
     key = routes.RSS_FEEDS
     ret = await get_cache(key)

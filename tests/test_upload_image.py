@@ -1,28 +1,26 @@
 import cv2
 import pytest
 from fastapi import status
-from httpx import AsyncClient
 
-from izba_reader import app, routes
+from izba_reader import routes
 from izba_reader.constants import IMAGES_DIR
 
 
 @pytest.mark.anyio
-async def test_ok(image_file):
+async def test_ok(async_client, image_file):
     path = image_file(3000, 4000)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        with open(path, "rb") as image_file:
-            response = await ac.post(
-                routes.UPLOAD_IMAGE,
-                files={
-                    "uploaded_file": (
-                        image_file.name,
-                        image_file,
-                        # "image/jpeg"
-                    )
-                },
-            )
+    with open(path, "rb") as img:
+        response = await async_client.post(
+            routes.UPLOAD_IMAGE,
+            files={
+                "uploaded_file": (
+                    img.name,
+                    img,
+                    # "image/jpeg"
+                )
+            },
+        )
 
     assert response.status_code == status.HTTP_200_OK, response.json()
 
@@ -34,19 +32,17 @@ async def test_ok(image_file):
 
 
 @pytest.mark.anyio
-async def test_invalid_mime_type():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        with open(__file__, "rb") as image_file:
-            response = await ac.post(
-                routes.UPLOAD_IMAGE,
-                files={
-                    "uploaded_file": (
-                        image_file.name,
-                        image_file,
-                        # "image/jpeg"
-                    )
-                },
-            )
+async def test_invalid_mime_type(async_client):
+    with open(__file__, "rb") as f:
+        response = await async_client.post(
+            routes.UPLOAD_IMAGE,
+            files={
+                "uploaded_file": (
+                    f.name,
+                    f,
+                )
+            },
+        )
 
     assert (
         response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
@@ -57,21 +53,20 @@ async def test_invalid_mime_type():
 
 
 @pytest.mark.anyio
-async def test_invalid_aspect_ratio(image_file):
-    path = image_file()
+async def test_invalid_aspect_ratio(async_client, image_file):
+    path = image_file(1000, 2000)
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        with open(path, "rb") as image_file:
-            response = await ac.post(
-                routes.UPLOAD_IMAGE,
-                files={
-                    "uploaded_file": (
-                        image_file.name,
-                        image_file,
-                        # "image/jpeg"
-                    )
-                },
-            )
+    with open(path, "rb") as img:
+        response = await async_client.post(
+            routes.UPLOAD_IMAGE,
+            files={
+                "uploaded_file": (
+                    img.name,
+                    img,
+                    # "image/jpeg"
+                )
+            },
+        )
 
     assert (
         response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE

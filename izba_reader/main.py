@@ -1,6 +1,5 @@
 import itertools
 from datetime import datetime
-from pathlib import Path
 from uuid import uuid4
 
 import cv2
@@ -8,13 +7,17 @@ import numpy as np
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, status
 
 from izba_reader import routes, timezones
-from izba_reader.models import RssFeedsResponse, WebScrapersResponse
+from izba_reader.constants import IMAGES_DIR
+from izba_reader.models import (
+    Message,
+    RssFeedsResponse,
+    UploadImageResponse,
+    WebScrapersResponse,
+)
 from izba_reader.services.cache import get_cache, set_cache
 from izba_reader.tasks import fetch_rss_feeds, scrap_web
 
 app = FastAPI()
-BASE_DIR = Path(__file__).resolve().parent.parent
-IMAGES_DIR = BASE_DIR / "images"
 
 if not IMAGES_DIR.is_dir():
     IMAGES_DIR.mkdir()
@@ -60,7 +63,11 @@ async def web_scrapers(background_tasks: BackgroundTasks) -> dict:
     return ret
 
 
-@app.post(routes.UPLOAD_IMAGE)
+@app.post(
+    routes.UPLOAD_IMAGE,
+    responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": Message}},
+    response_model=UploadImageResponse,
+)
 async def upload_image(uploaded_file: UploadFile = File(...)) -> dict:
     async def get_opencv_img_from_buffer(buffer, flags):
         bytes_as_np_array = np.frombuffer(await buffer.read(), dtype=np.uint8)
@@ -68,7 +75,7 @@ async def upload_image(uploaded_file: UploadFile = File(...)) -> dict:
 
     if uploaded_file.content_type != "image/jpeg":
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail=f"Unhandled MIME type '{uploaded_file.content_type}'",
         )
 
@@ -77,10 +84,14 @@ async def upload_image(uploaded_file: UploadFile = File(...)) -> dict:
 
     if aspect_ratio != 4 / 3:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, detail="4:3 aspect ratio image required"
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="4:3 aspect ratio image required",
         )
 
-    path = IMAGES_DIR / f"{uuid4()}.jpg"
-    cv2.imwrite(path.as_posix(), img)
+    if img.shape[1] > 1000:
+        img = cv2.resize(img, (1000, 750))
 
-    return {}
+    path = IMAGES_DIR / f"{uuid4()}.jpg"
+    cv2.imwrite(str(path), img)
+
+    return {"filename": path.name}

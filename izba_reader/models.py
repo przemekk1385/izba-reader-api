@@ -3,6 +3,10 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class Message(BaseModel):
+    detail: str
+
+
 class Feed(BaseModel):
     title: str
     description: str
@@ -17,6 +21,10 @@ class RssFeedsResponse(BaseModel):
     fetched_at: datetime
     feeds_count: int
     feeds: list[Feed]
+
+
+class UploadImageResponse(BaseModel):
+    filename: str
 
 
 class WebScrapersResponse(BaseModel):

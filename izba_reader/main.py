@@ -5,9 +5,9 @@ from uuid import uuid4
 import cv2
 import numpy as np
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, status
+from starlette.staticfiles import StaticFiles
 
-from izba_reader import routes, timezones
-from izba_reader.constants import IMAGES_DIR
+from izba_reader import constants, routes, timezones
 from izba_reader.models import (
     Message,
     RssFeedsResponse,
@@ -19,8 +19,14 @@ from izba_reader.tasks import fetch_rss_feeds, scrap_web
 
 app = FastAPI()
 
-if not IMAGES_DIR.is_dir():
-    IMAGES_DIR.mkdir()
+if not constants.IMAGES_ROOT.is_dir():
+    constants.IMAGES_ROOT.mkdir()
+
+app.mount(
+    constants.IMAGES_URL,
+    StaticFiles(directory=constants.IMAGES_ROOT),
+    name=constants.IMAGES_ROOT.name,
+)
 
 
 @app.get("/")
@@ -91,7 +97,7 @@ async def upload_image(uploaded_file: UploadFile = File(...)) -> dict:
     if img.shape[1] > 1000:
         img = cv2.resize(img, (1000, 750))
 
-    path = IMAGES_DIR / f"{uuid4()}.jpg"
+    path = constants.IMAGES_ROOT / f"{uuid4()}.jpg"
     cv2.imwrite(str(path), img)
 
-    return {"filename": path.name}
+    return {"filename": f"{constants.IMAGES_URL}{path.name}"}

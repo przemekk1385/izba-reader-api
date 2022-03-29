@@ -2,8 +2,7 @@ import cv2
 import pytest
 from fastapi import status
 
-from izba_reader import routes
-from izba_reader.constants import IMAGES_DIR
+from izba_reader import constants, routes
 
 
 @pytest.mark.anyio
@@ -27,7 +26,9 @@ async def test_ok(async_client, image_file):
     response_data = response.json()
     assert response_data["filename"]
 
-    img = cv2.imread(str(IMAGES_DIR / response_data["filename"]), 0)
+    img = cv2.imread(
+        str(constants.IMAGES_ROOT / response_data["filename"].split("/")[-1]), 0
+    )
     assert img.shape == (750, 1000)
 
 

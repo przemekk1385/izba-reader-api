@@ -5,7 +5,7 @@ from fastapi import status
 from izba_reader import constants, routes
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_ok(async_client, image_file):
     path = image_file(3000, 4000)
 
@@ -32,7 +32,7 @@ async def test_ok(async_client, image_file):
     assert img.shape == (750, 1000)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_invalid_mime_type(async_client):
     with open(__file__, "rb") as f:
         response = await async_client.post(
@@ -53,7 +53,7 @@ async def test_invalid_mime_type(async_client):
     assert "text/x-python" in response_data["detail"]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_invalid_aspect_ratio(async_client, image_file):
     path = image_file(1000, 2000)
 

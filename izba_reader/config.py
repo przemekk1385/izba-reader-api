@@ -6,4 +6,5 @@ class Config(BaseSettings):
     redis_url: str = "redis://localhost:6379"
 
 
-config = Config()
+def get_config() -> Config:
+    return Config()

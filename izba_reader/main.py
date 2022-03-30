@@ -4,17 +4,28 @@ from uuid import uuid4
 
 import cv2
 import numpy as np
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile, status
+from aioredis import Redis
+from aioredis.exceptions import ConnectionError
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes, timezones
+from izba_reader.config import Config, get_config
 from izba_reader.models import (
     Message,
     RssFeedsResponse,
     UploadImageResponse,
     WebScrapersResponse,
 )
-from izba_reader.services.cache import get_cache, set_cache
+from izba_reader.services.cache import get_cache, get_redis, set_cache
 from izba_reader.tasks import fetch_rss_feeds, scrap_web
 
 app = FastAPI()
@@ -29,15 +40,22 @@ app.mount(
 )
 
 
-@app.get("/")
-def hello_world() -> dict:
-    return {"hello": "world"}
+@app.get(routes.HEALTH, response_model=None)
+async def health(redis: Redis = Depends(get_redis)) -> None:
+    try:
+        await redis.ping()
+    except ConnectionError:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 @app.get(routes.RSS_FEEDS, response_model=RssFeedsResponse)
-async def rss_feeds(background_tasks: BackgroundTasks) -> dict:
+async def rss_feeds(
+    background_tasks: BackgroundTasks,
+    config: Config = Depends(get_config),
+    redis: Redis = Depends(get_redis),
+) -> dict:
     key = routes.RSS_FEEDS
-    ret = await get_cache(key)
+    ret = await get_cache(key, redis=redis)
 
     if not ret:
         feeds = list(itertools.chain(*await fetch_rss_feeds()))
@@ -47,15 +65,19 @@ async def rss_feeds(background_tasks: BackgroundTasks) -> dict:
             "feeds": feeds,
         }
 
-        background_tasks.add_task(set_cache, key, ret)
+        background_tasks.add_task(set_cache, key, ret, config=config, redis=redis)
 
     return ret
 
 
 @app.get(routes.WEB_SCRAPERS, response_model=WebScrapersResponse)
-async def web_scrapers(background_tasks: BackgroundTasks) -> dict:
+async def web_scrapers(
+    background_tasks: BackgroundTasks,
+    config: Config = Depends(get_config),
+    redis: Redis = Depends(get_redis),
+) -> dict:
     key = routes.WEB_SCRAPERS
-    ret = await get_cache(key)
+    ret = await get_cache(key, redis=redis)
 
     if not ret:
         news = list(itertools.chain(*await scrap_web()))
@@ -64,7 +86,7 @@ async def web_scrapers(background_tasks: BackgroundTasks) -> dict:
             "news": news,
         }
 
-        background_tasks.add_task(set_cache, key, ret)
+        background_tasks.add_task(set_cache, key, ret, config=config, redis=redis)
 
     return ret
 

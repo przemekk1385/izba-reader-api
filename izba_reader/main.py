@@ -40,7 +40,11 @@ app.mount(
 )
 
 
-@app.get(routes.HEALTH, response_model=None)
+@app.get(
+    routes.HEALTH,
+    responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": None}},
+    response_model=None,
+)
 async def health(redis: Redis = Depends(get_redis)) -> None:
     try:
         await redis.ping()

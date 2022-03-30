@@ -4,13 +4,14 @@ from typing import Callable
 import cv2
 import numpy as np
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 
 from izba_reader import app
 from izba_reader.config import Config, get_config
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac

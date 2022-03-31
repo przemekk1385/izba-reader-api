@@ -1,8 +1,10 @@
+import asyncio
 import itertools
 from datetime import datetime
 from uuid import uuid4
 
 import cv2
+import httpx
 import numpy as np
 from aioredis import Redis
 from aioredis.exceptions import ConnectionError
@@ -12,13 +14,14 @@ from fastapi import (
     FastAPI,
     File,
     HTTPException,
+    Request,
     UploadFile,
     status,
 )
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
 from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes, timezones
-from izba_reader.config import Config, get_config
 from izba_reader.models import (
     Message,
     RssFeedsResponse,
@@ -26,6 +29,7 @@ from izba_reader.models import (
     WebScrapersResponse,
 )
 from izba_reader.services.cache import get_cache, get_redis, set_cache
+from izba_reader.settings import Settings, get_settings
 from izba_reader.tasks import fetch_rss_feeds, scrap_web
 
 app = FastAPI()
@@ -55,7 +59,7 @@ async def health(redis: Redis = Depends(get_redis)) -> None:
 @app.get(routes.RSS_FEEDS, response_model=RssFeedsResponse)
 async def rss_feeds(
     background_tasks: BackgroundTasks,
-    config: Config = Depends(get_config),
+    settings: Settings = Depends(get_settings),
     redis: Redis = Depends(get_redis),
 ) -> dict:
     key = routes.RSS_FEEDS
@@ -69,7 +73,7 @@ async def rss_feeds(
             "feeds": feeds,
         }
 
-        background_tasks.add_task(set_cache, key, ret, config=config, redis=redis)
+        background_tasks.add_task(set_cache, key, ret, settings=settings, redis=redis)
 
     return ret
 
@@ -77,7 +81,7 @@ async def rss_feeds(
 @app.get(routes.WEB_SCRAPERS, response_model=WebScrapersResponse)
 async def web_scrapers(
     background_tasks: BackgroundTasks,
-    config: Config = Depends(get_config),
+    settings: Settings = Depends(get_settings),
     redis: Redis = Depends(get_redis),
 ) -> dict:
     key = routes.WEB_SCRAPERS
@@ -90,7 +94,7 @@ async def web_scrapers(
             "news": news,
         }
 
-        background_tasks.add_task(set_cache, key, ret, config=config, redis=redis)
+        background_tasks.add_task(set_cache, key, ret, settings=settings, redis=redis)
 
     return ret
 
@@ -127,3 +131,61 @@ async def upload_image(uploaded_file: UploadFile = File(...)) -> dict:
     cv2.imwrite(str(path), img)
 
     return {"filename": f"{constants.IMAGES_URL}{path.name}"}
+
+
+@app.get(routes.SEND_MAIL, response_model=None)
+async def send_mail(
+    email: str, request: Request, settings: Settings = Depends(get_settings)
+) -> None:
+    base_url = str(request.base_url)[:-1]
+    async with httpx.AsyncClient() as client:
+        rss_feeds_response, web_scrapers_response = await asyncio.gather(
+            client.get(f"{base_url}{routes.RSS_FEEDS}"),
+            client.get(f"{base_url}{routes.WEB_SCRAPERS}"),
+        )
+
+        feeds = rss_feeds_response.json()["feeds"]
+        news = web_scrapers_response.json()["news"]
+
+        body = "\n\n".join(
+            [
+                "\n\n".join(
+                    [
+                        "source:RSS\n"
+                        f"{item['title']}\n"
+                        f"{item['description']}\n"
+                        f"{item['link']}"
+                        for item in feeds
+                    ]
+                ),
+                "\n\n".join(
+                    [
+                        "source:WEB\n"
+                        f"{item['date']}\n"
+                        f"{item['title']}\n"
+                        f"{item['description']}\n"
+                        f"{item['link']}"
+                        for item in news
+                    ]
+                ),
+            ]
+        )
+
+        message = MessageSchema(
+            subject=settings.mail_subject, recipients=[email], body=body
+        )
+
+        connection_config = ConnectionConfig(
+            MAIL_USERNAME=settings.mail_username,
+            MAIL_PASSWORD=settings.mail_password,
+            MAIL_FROM=settings.mail_from,
+            MAIL_PORT=settings.mail_port,
+            MAIL_SERVER=settings.mail_server,
+            MAIL_TLS=True,
+            MAIL_SSL=False,
+            USE_CREDENTIALS=True,
+            VALIDATE_CERTS=True,
+        )
+
+        fm = FastMail(connection_config)
+        await fm.send_message(message)

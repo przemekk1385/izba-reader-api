@@ -12,7 +12,7 @@ __all__ = ["scrap_cire_pl"]
 
 @asynccontextmanager
 async def get_browser() -> Browser:
-    browser = await launch()
+    browser = await launch(options={"args": ["--no-sandbox"]})
     try:
         yield browser
     finally:
@@ -51,17 +51,22 @@ async def scrap_cire_pl(browser: Browser) -> list[dict]:
             news = []
             for tag in (soup.find("a", href=href) for href in hrefs):
                 next_sibling = tag.next_sibling()
+                offset = 0
+                try:
+                    dt = datetime.strptime(next_sibling[1].text, "%Y-%m-%d %H:%M")
+                except ValueError:
+                    dt = datetime.strptime(next_sibling[2].text, "%Y-%m-%d %H:%M")
+                    offset = 1
+
                 news.append(
                     {
                         "link": tag["href"],
                         "description": "\n".join(
                             next_sibling[i].text
-                            for i in range(3, len(next_sibling) - 1)
+                            for i in range(3 + offset, len(next_sibling) - 1)
                         ),
-                        "title": next_sibling[2].text,
-                        "date": datetime.strptime(
-                            next_sibling[1].text, "%Y-%m-%d %H:%M"
-                        ),
+                        "title": next_sibling[2 + offset].text,
+                        "date": dt,
                     }
                 )
 

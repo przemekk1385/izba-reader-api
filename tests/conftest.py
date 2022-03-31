@@ -4,12 +4,14 @@ from typing import Callable
 import cv2
 import numpy as np
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient
 
 from izba_reader import app
+from izba_reader.config import Config, get_config
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         yield ac
@@ -32,3 +34,12 @@ def image_file(faker, tmp_path) -> Callable:
         return path
 
     return make_image_file
+
+
+@pytest.fixture
+def config_override(faker):
+    app.dependency_overrides[get_config] = lambda: Config(
+        redis_url=(
+            f"redis://{faker.uri_path(deep=1)}:{faker.port_number(is_dynamic=True)}"
+        )
+    )

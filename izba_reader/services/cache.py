@@ -8,8 +8,8 @@ from fastapi import Depends
 from izba_reader.settings import Settings, get_settings
 
 
-def get_redis(config: Settings = Depends(get_settings)):
-    return aioredis.from_url(config.redis_url, decode_responses=True)
+def get_redis(settings: Settings = Depends(get_settings)):
+    return aioredis.from_url(settings.redis_url, decode_responses=True)
 
 
 async def get_cache(key, redis: Redis = Depends(get_redis)) -> dict:

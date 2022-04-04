@@ -13,7 +13,6 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
 from pydantic import EmailStr
 from starlette.staticfiles import StaticFiles
 
@@ -25,7 +24,7 @@ from izba_reader.models import (
     WebScrapersResponse,
 )
 from izba_reader.services.cache import get_redis
-from izba_reader.services.mail import make_text_body
+from izba_reader.services.mail import send_message
 from izba_reader.settings import Settings, get_settings
 from izba_reader.tasks import get_from_html, get_from_rss
 
@@ -116,27 +115,7 @@ async def send_mail(
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ) -> None:
-    async def send_message():
-        body = await make_text_body(background_tasks, redis=redis, settings=settings)
-
-        message = MessageSchema(
-            subject=settings.mail_subject, recipients=[email], body=body
-        )
-
-        connection_config = ConnectionConfig(
-            MAIL_USERNAME=settings.mail_username,
-            MAIL_PASSWORD=settings.mail_password,
-            MAIL_FROM=settings.mail_from,
-            MAIL_PORT=settings.mail_port,
-            MAIL_SERVER=settings.mail_server,
-            MAIL_TLS=True,
-            MAIL_SSL=False,
-            USE_CREDENTIALS=True,
-            VALIDATE_CERTS=True,
-        )
-
-        fm = FastMail(connection_config)
-        await fm.send_message(message)
-
-    background_tasks.add_task(send_message)
+    background_tasks.add_task(
+        send_message, email, background_tasks, redis=redis, settings=settings
+    )
     # await send_message()

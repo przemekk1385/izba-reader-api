@@ -1,65 +1,68 @@
 import asyncio
-import itertools
 
 import httpx
+from aioredis import Redis
+from fastapi import BackgroundTasks, Depends
 
 from izba_reader.services import html, rss
+from izba_reader.services.cache import get_cache, get_redis, set_cache
 from izba_reader.services.html import get_browser
+from izba_reader.settings import Settings, get_settings
+from izba_reader.utils import gather_services
 
 
-async def get_mail_text_body() -> str:
-    feeds, news = (
-        list(chain)
-        for chain in (
-            itertools.chain(*result)
-            for result in await asyncio.gather(fetch_rss_feeds(), scrap_web())
-        )
-    )
-
-    return "\n\n".join(
-        [
-            "\n\n".join(
-                [
-                    "source:RSS\n"
-                    f"{item['title']}\n"
-                    f"{item['description']}\n"
-                    f"{item['link']}"
-                    for item in feeds
-                ]
-                if feeds
-                else ["no RSS items"]
-            ),
-            "\n\n".join(
-                [
-                    "source:WEB\n"
-                    f"{item['date']}\n"
-                    f"{item['title']}\n"
-                    f"{item['description']}\n"
-                    f"{item['link']}"
-                    for item in news
-                ]
-                if news
-                else ["no WEB items"]
-            ),
-        ]
+async def get_both(
+    background_tasks: BackgroundTasks,
+    redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
+) -> tuple[dict, ...]:
+    return await asyncio.gather(
+        get_from_rss(background_tasks, redis=redis, settings=settings),
+        get_from_html(background_tasks, redis=redis, settings=settings),
     )
 
 
-async def fetch_rss_feeds():
+async def get_from_rss(
+    background_tasks: BackgroundTasks,
+    redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
+) -> dict:
+    key = "get_from_rss"
+
+    if ret := await get_cache(key, redis=redis):
+        return ret
+
     async with httpx.AsyncClient() as client:
-        return await asyncio.gather(
+        ret = await gather_services(
             *[
                 getattr(rss, rss_service_name)(client)
                 for rss_service_name in rss.__all__
             ]
         )
 
+        background_tasks.add_task(set_cache, key, ret, redis=redis, settings=settings)
 
-async def scrap_web():
+    return ret
+
+
+async def get_from_html(
+    background_tasks: BackgroundTasks,
+    redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
+) -> dict:
+    key = "get_from_html"
+
+    if ret := await get_cache(key, redis=redis):
+        return ret
+
     async with get_browser() as browser:
-        return await asyncio.gather(
+        ret = await gather_services(
             *[
                 getattr(html, html_service_name)(browser)
                 for html_service_name in html.__all__
             ]
         )
+
+        background_tasks.add_task(set_cache, key, ret, redis=redis, settings=settings)
+
+    return ret

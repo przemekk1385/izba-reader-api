@@ -1,10 +1,8 @@
-import asyncio
 import itertools
 from datetime import datetime
 from uuid import uuid4
 
 import cv2
-import httpx
 import numpy as np
 from aioredis import Redis
 from aioredis.exceptions import ConnectionError
@@ -14,11 +12,11 @@ from fastapi import (
     FastAPI,
     File,
     HTTPException,
-    Request,
     UploadFile,
     status,
 )
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
+from pydantic import EmailStr
 from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes, timezones
@@ -30,7 +28,7 @@ from izba_reader.models import (
 )
 from izba_reader.services.cache import get_cache, get_redis, set_cache
 from izba_reader.settings import Settings, get_settings
-from izba_reader.tasks import fetch_rss_feeds, scrap_web
+from izba_reader.tasks import fetch_rss_feeds, get_mail_text_body, scrap_web
 
 app = FastAPI()
 
@@ -59,8 +57,8 @@ async def health(redis: Redis = Depends(get_redis)) -> None:
 @app.get(routes.RSS_FEEDS, response_model=RssFeedsResponse)
 async def rss_feeds(
     background_tasks: BackgroundTasks,
-    settings: Settings = Depends(get_settings),
     redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
 ) -> dict:
     key = routes.RSS_FEEDS
     ret = await get_cache(key, redis=redis)
@@ -81,8 +79,8 @@ async def rss_feeds(
 @app.get(routes.WEB_SCRAPERS, response_model=WebScrapersResponse)
 async def web_scrapers(
     background_tasks: BackgroundTasks,
-    settings: Settings = Depends(get_settings),
     redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
 ) -> dict:
     key = routes.WEB_SCRAPERS
     ret = await get_cache(key, redis=redis)
@@ -133,43 +131,21 @@ async def upload_image(uploaded_file: UploadFile = File(...)) -> dict:
     return {"filename": f"{constants.IMAGES_URL}{path.name}"}
 
 
-@app.get(routes.SEND_MAIL, response_model=None)
+@app.get(routes.SEND_MAIL, response_model=None, status_code=status.HTTP_202_ACCEPTED)
 async def send_mail(
-    email: str, request: Request, settings: Settings = Depends(get_settings)
+    email: EmailStr,
+    background_tasks: BackgroundTasks,
+    redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
 ) -> None:
-    base_url = str(request.base_url)[:-1]
-    async with httpx.AsyncClient() as client:
-        rss_feeds_response, web_scrapers_response = await asyncio.gather(
-            client.get(f"{base_url}{routes.RSS_FEEDS}"),
-            client.get(f"{base_url}{routes.WEB_SCRAPERS}"),
-        )
+    async def send_message():
+        key = routes.SEND_MAIL
+        if not (body := (await get_cache(key, redis=redis) or {}).get("text")):
+            body = await get_mail_text_body()
 
-        feeds = rss_feeds_response.json()["feeds"]
-        news = web_scrapers_response.json()["news"]
-
-        body = "\n\n".join(
-            [
-                "\n\n".join(
-                    [
-                        "source:RSS\n"
-                        f"{item['title']}\n"
-                        f"{item['description']}\n"
-                        f"{item['link']}"
-                        for item in feeds
-                    ]
-                ),
-                "\n\n".join(
-                    [
-                        "source:WEB\n"
-                        f"{item['date']}\n"
-                        f"{item['title']}\n"
-                        f"{item['description']}\n"
-                        f"{item['link']}"
-                        for item in news
-                    ]
-                ),
-            ]
-        )
+            background_tasks.add_task(
+                set_cache, key, {"text": body}, settings=settings, redis=redis
+            )
 
         message = MessageSchema(
             subject=settings.mail_subject, recipients=[email], body=body
@@ -189,3 +165,6 @@ async def send_mail(
 
         fm = FastMail(connection_config)
         await fm.send_message(message)
+
+    background_tasks.add_task(send_message)
+    # await send_message()

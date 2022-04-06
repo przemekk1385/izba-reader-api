@@ -1,0 +1,37 @@
+import pytest
+from fastapi import status
+from fastapi_mail import FastMail
+
+from izba_reader import app, routes
+from izba_reader.settings import Settings, get_settings
+
+
+@pytest.fixture(autouse=True)
+def settings_override(faker) -> None:
+    email = faker.email()
+
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mail_from=email,
+        mail_password=faker.password(),
+        mail_port=faker.port_number(is_system=True),
+        mail_server=faker.domain_name(),
+        mail_subject=faker.sentence(),
+        mail_username=email,
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("mocked_html_services", "mocked_rss_services")
+async def test_ok(async_client, faker, mocked_cache, mocker):
+    email = faker.email()
+
+    mocked_cache.get_cache.return_value = None
+    mocked_send_message = mocker.patch.object(FastMail, "send_message")
+
+    response = await async_client.get(routes.SEND_MAIL, params={"email": email})
+
+    assert response.status_code == status.HTTP_202_ACCEPTED, response.json()
+
+    assert email in mocked_send_message.call_args[0][0].recipients
+
+    assert mocked_cache.get_cache.call_count == mocked_cache.set_cache.call_count == 2

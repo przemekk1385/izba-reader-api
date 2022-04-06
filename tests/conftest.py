@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Callable
 
 import cv2
@@ -7,8 +8,8 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 
-from izba_reader import app
-from izba_reader.config import Config, get_config
+from izba_reader import app, timezones
+from izba_reader.services import html, rss
 
 
 @pytest_asyncio.fixture
@@ -36,10 +37,56 @@ def image_file(faker, tmp_path) -> Callable:
     return make_image_file
 
 
-@pytest.fixture
-def config_override(faker):
-    app.dependency_overrides[get_config] = lambda: Config(
-        redis_url=(
-            f"redis://{faker.uri_path(deep=1)}:{faker.port_number(is_dynamic=True)}"
-        )
+@pytest.fixture(autouse=True)
+def mocked_cache(mocker) -> SimpleNamespace:
+    return SimpleNamespace(
+        get_cache=mocker.patch("izba_reader.tasks.get_cache"),
+        set_cache=mocker.patch("izba_reader.tasks.set_cache"),
     )
+
+
+@pytest.fixture
+def mocked_html_services(faker, mocker) -> tuple[dict, dict]:
+    return_value = {
+        name: [
+            {
+                "link": faker.uri(),
+                "description": faker.paragraph(),
+                "title": faker.sentence(),
+                "date": faker.date_time_this_month(
+                    before_now=True, tzinfo=timezones.EUROPE_WARSAW
+                ),
+            }
+            for _ in range(faker.random_int(min=2, max=10))
+        ]
+        for name in html.__all__
+    }
+
+    mocked_service = {
+        name: mocker.patch(f"izba_reader.services.html.{name}", return_value=value)
+        for name, value in return_value.items()
+    }
+
+    return mocked_service, return_value
+
+
+@pytest.fixture
+def mocked_rss_services(faker, mocker) -> tuple[dict, dict]:
+    return_value = {
+        name: [
+            {
+                "title": faker.sentence(),
+                "description": faker.paragraph(),
+                "link": faker.uri(),
+            }
+            for _ in range(faker.random_int(min=2, max=10))
+        ]
+        for name in rss.__all__
+    }
+
+    mocked_service = {
+        name: mocker.patch(f"izba_reader.services.rss.{name}", return_value=value)
+        for name, value in return_value.items()
+    }
+
+    return mocked_service, return_value

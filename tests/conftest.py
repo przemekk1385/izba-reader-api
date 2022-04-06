@@ -10,6 +10,7 @@ from httpx import AsyncClient
 
 from izba_reader import app, timezones
 from izba_reader.services import html, rss
+from izba_reader.settings import Settings, get_settings
 
 
 @pytest_asyncio.fixture
@@ -90,3 +91,17 @@ def mocked_rss_services(faker, mocker) -> tuple[dict, dict]:
     }
 
     return mocked_service, return_value
+
+
+@pytest.fixture
+def mail_settings_override(faker):
+    email = faker.email()
+
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        mail_from=email,
+        mail_password=faker.password(),
+        mail_port=faker.port_number(is_system=True),
+        mail_server=faker.domain_name(),
+        mail_subject=faker.sentence(),
+        mail_username=email,
+    )

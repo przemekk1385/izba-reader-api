@@ -2,26 +2,13 @@ import pytest
 from fastapi import status
 from fastapi_mail import FastMail
 
-from izba_reader import app, routes
-from izba_reader.settings import Settings, get_settings
-
-
-@pytest.fixture(autouse=True)
-def settings_override(faker) -> None:
-    email = faker.email()
-
-    app.dependency_overrides[get_settings] = lambda: Settings(
-        mail_from=email,
-        mail_password=faker.password(),
-        mail_port=faker.port_number(is_system=True),
-        mail_server=faker.domain_name(),
-        mail_subject=faker.sentence(),
-        mail_username=email,
-    )
+from izba_reader import routes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("mocked_html_services", "mocked_rss_services")
+@pytest.mark.usefixtures(
+    "mail_settings_override", "mocked_html_services", "mocked_rss_services"
+)
 async def test_ok(async_client, faker, mocked_cache, mocker):
     email = faker.email()
 

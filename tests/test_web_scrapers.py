@@ -8,8 +8,8 @@ from izba_reader import routes, timezones
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("mail_settings_override")
-async def test_ok(async_client, faker, mocked_cache, mocked_rss_services):
-    mocked_service, return_value = mocked_rss_services
+async def test_ok(async_client, faker, mocked_cache, mocked_html_services):
+    mocked_service, return_value = mocked_html_services
     all_items = list(itertools.chain(*return_value.values()))
 
     mocked_cache.get_cache.return_value = {
@@ -19,7 +19,7 @@ async def test_ok(async_client, faker, mocked_cache, mocked_rss_services):
         ),
     }
 
-    response = await async_client.get(routes.RSS_FEEDS)
+    response = await async_client.get(routes.WEB_SCRAPERS)
 
     assert response.status_code == status.HTTP_200_OK, response.json()
 
@@ -34,13 +34,13 @@ async def test_ok(async_client, faker, mocked_cache, mocked_rss_services):
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("mail_settings_override")
-async def test_ok_when_no_cache(async_client, mocked_cache, mocked_rss_services):
-    mocked_service, return_value = mocked_rss_services
+async def test_ok_when_no_cache(async_client, mocked_cache, mocked_html_services):
+    mocked_service, return_value = mocked_html_services
     all_items = list(itertools.chain(*return_value.values()))
 
     mocked_cache.get_cache.return_value = None
 
-    response = await async_client.get(routes.RSS_FEEDS)
+    response = await async_client.get(routes.WEB_SCRAPERS)
 
     assert response.status_code == status.HTTP_200_OK, response.json()
 

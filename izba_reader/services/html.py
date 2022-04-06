@@ -60,7 +60,7 @@ async def scrap_cire_pl(browser: Browser) -> list[dict]:
 
                 news.append(
                     {
-                        "link": tag["href"],
+                        "link": f"https://www.cire.pl{tag['href']}",
                         "description": "\n".join(
                             next_sibling[i].text
                             for i in range(3 + offset, len(next_sibling) - 1)

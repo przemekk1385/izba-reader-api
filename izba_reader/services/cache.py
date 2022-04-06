@@ -5,11 +5,11 @@ import aioredis
 from aioredis import Redis
 from fastapi import Depends
 
-from izba_reader.config import Config, get_config
+from izba_reader.settings import Settings, get_settings
 
 
-def get_redis(config: Config = Depends(get_config)):
-    return aioredis.from_url(config.redis_url, decode_responses=True)
+def get_redis(settings: Settings = Depends(get_settings)):
+    return aioredis.from_url(settings.redis_url, decode_responses=True)
 
 
 async def get_cache(key, redis: Redis = Depends(get_redis)) -> dict:
@@ -19,7 +19,7 @@ async def get_cache(key, redis: Redis = Depends(get_redis)) -> dict:
 async def set_cache(
     key: str,
     value: dict,
-    config: Config = Depends(get_config),
+    settings: Settings = Depends(get_settings),
     redis: Redis = Depends(get_redis),
 ) -> None:
     await redis.set(
@@ -27,5 +27,5 @@ async def set_cache(
         json.dumps(
             value, default=lambda x: x.isoformat() if isinstance(x, datetime) else x
         ),
-        ex=config.ex,
+        ex=settings.ex,
     )

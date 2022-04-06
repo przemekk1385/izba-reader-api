@@ -1,5 +1,3 @@
-import itertools
-from datetime import datetime
 from uuid import uuid4
 
 import cv2
@@ -15,18 +13,20 @@ from fastapi import (
     UploadFile,
     status,
 )
+from pydantic import EmailStr
 from starlette.staticfiles import StaticFiles
 
-from izba_reader import constants, routes, timezones
-from izba_reader.config import Config, get_config
+from izba_reader import constants, routes
 from izba_reader.models import (
     Message,
     RssFeedsResponse,
     UploadImageResponse,
     WebScrapersResponse,
 )
-from izba_reader.services.cache import get_cache, get_redis, set_cache
-from izba_reader.tasks import fetch_rss_feeds, scrap_web
+from izba_reader.services.cache import get_redis
+from izba_reader.services.mail import send_message
+from izba_reader.settings import Settings, get_settings
+from izba_reader.tasks import get_from_html, get_from_rss
 
 app = FastAPI()
 
@@ -55,44 +55,23 @@ async def health(redis: Redis = Depends(get_redis)) -> None:
 @app.get(routes.RSS_FEEDS, response_model=RssFeedsResponse)
 async def rss_feeds(
     background_tasks: BackgroundTasks,
-    config: Config = Depends(get_config),
     redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
 ) -> dict:
-    key = routes.RSS_FEEDS
-    ret = await get_cache(key, redis=redis)
+    feeds = await get_from_rss(background_tasks, redis=redis, settings=settings)
 
-    if not ret:
-        feeds = list(itertools.chain(*await fetch_rss_feeds()))
-        ret = {
-            "fetched_at": datetime.now().astimezone(timezones.EUROPE_WARSAW),
-            "feeds_count": len(feeds),
-            "feeds": feeds,
-        }
-
-        background_tasks.add_task(set_cache, key, ret, config=config, redis=redis)
-
-    return ret
+    return {**feeds, "count": len(feeds["items"])}
 
 
 @app.get(routes.WEB_SCRAPERS, response_model=WebScrapersResponse)
 async def web_scrapers(
     background_tasks: BackgroundTasks,
-    config: Config = Depends(get_config),
     redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
 ) -> dict:
-    key = routes.WEB_SCRAPERS
-    ret = await get_cache(key, redis=redis)
+    news = await get_from_html(background_tasks, redis=redis, settings=settings)
 
-    if not ret:
-        news = list(itertools.chain(*await scrap_web()))
-        ret = {
-            "news_count": len(news),
-            "news": news,
-        }
-
-        background_tasks.add_task(set_cache, key, ret, config=config, redis=redis)
-
-    return ret
+    return {**news, "count": len(news["items"])}
 
 
 @app.post(
@@ -127,3 +106,16 @@ async def upload_image(uploaded_file: UploadFile = File(...)) -> dict:
     cv2.imwrite(str(path), img)
 
     return {"filename": f"{constants.IMAGES_URL}{path.name}"}
+
+
+@app.get(routes.SEND_MAIL, response_model=None, status_code=status.HTTP_202_ACCEPTED)
+async def send_mail(
+    email: EmailStr,
+    background_tasks: BackgroundTasks,
+    redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
+) -> None:
+    background_tasks.add_task(
+        send_message, email, background_tasks, redis=redis, settings=settings
+    )
+    # await send_message()

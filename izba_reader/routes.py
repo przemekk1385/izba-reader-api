@@ -1,4 +1,5 @@
 HEALTH = "/health"
 UPLOAD_IMAGE = "/upload-image"
 RSS_FEEDS = "/rss-feeds"
+SEND_MAIL = "/send-mail"
 WEB_SCRAPERS = "/web-scrapers"

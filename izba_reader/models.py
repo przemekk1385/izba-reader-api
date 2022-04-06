@@ -17,16 +17,18 @@ class News(Feed):
     date: datetime
 
 
-class RssFeedsResponse(BaseModel):
-    fetched_at: datetime
-    feeds_count: int
-    feeds: list[Feed]
+class BaseResponseModel(BaseModel):
+    time: datetime
+    count: int
+
+
+class RssFeedsResponse(BaseResponseModel):
+    items: list[Feed]
+
+
+class WebScrapersResponse(BaseResponseModel):
+    items: list[News]
 
 
 class UploadImageResponse(BaseModel):
     filename: str
-
-
-class WebScrapersResponse(BaseModel):
-    news_count: int
-    news: list[News]

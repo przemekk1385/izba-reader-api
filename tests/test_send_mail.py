@@ -7,7 +7,7 @@ from izba_reader import routes
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures(
-    "mail_settings_override", "mocked_html_services", "mocked_rss_services"
+    "settings_override", "mocked_html_services", "mocked_rss_services"
 )
 async def test_ok(async_client, faker, mocked_cache, mocker):
     email = faker.email()

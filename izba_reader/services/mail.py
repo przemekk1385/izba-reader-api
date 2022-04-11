@@ -1,19 +1,23 @@
+import rollbar
 from aioredis import Redis
-from fastapi import BackgroundTasks, Depends
+from fastapi import BackgroundTasks, Depends, Request
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
 from pydantic import EmailStr
 
-from izba_reader.services.cache import get_redis
-from izba_reader.settings import Settings, get_settings
+from izba_reader.dependencies import get_redis, get_settings
+from izba_reader.settings import Settings
 from izba_reader.tasks import get_both
 
 
-async def make_text_body(
+async def make_text_message(
     background_tasks: BackgroundTasks,
+    request: Request,
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ) -> str:
-    feeds, news = await get_both(background_tasks, redis=redis, settings=settings)
+    feeds, news = await get_both(
+        background_tasks, request, redis=redis, settings=settings
+    )
 
     return "\n\n".join(
         [
@@ -45,12 +49,15 @@ async def make_text_body(
 
 
 async def send_message(
-    email: EmailStr,
     background_tasks: BackgroundTasks,
+    email: EmailStr,
+    request: Request,
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ):
-    body = await make_text_body(background_tasks, redis=redis, settings=settings)
+    body = await make_text_message(
+        background_tasks, request, redis=redis, settings=settings
+    )
 
     message = MessageSchema(
         subject=settings.mail_subject, recipients=[email], body=body
@@ -70,3 +77,4 @@ async def send_message(
 
     fm = FastMail(connection_config)
     await fm.send_message(message)
+    rollbar.report_message(f"Email sent to {email}", level="info", request=request)

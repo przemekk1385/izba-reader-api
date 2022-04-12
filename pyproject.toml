@@ -20,6 +20,7 @@ uvicorn = {extras = ["standard"], version = "^0.17.6"}
 rollbar = "^0.16.2"
 
 [tool.poetry.dev-dependencies]
+asgi-lifespan = "^1.0.1"
 black = "^22.1.0"
 flake8 = "^4.0.1"
 Faker = "^13.3.0"

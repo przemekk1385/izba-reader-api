@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 import pytest
 import pytest_asyncio
+from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 
 from izba_reader import app, timezones
@@ -16,7 +17,7 @@ from izba_reader.settings import Settings
 
 @pytest_asyncio.fixture
 async def async_client():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app, base_url="http://test") as ac, LifespanManager(app):
         yield ac
 
 
@@ -95,7 +96,7 @@ def mocked_rss_services(faker, mocker) -> tuple[dict, dict]:
 
 
 @pytest.fixture
-def settings_override(faker):
+def settings_override(faker, mocker):
     email = faker.email()
     settings = Settings(
         mail_from=email,
@@ -109,4 +110,6 @@ def settings_override(faker):
     )
 
     app.dependency_overrides[get_settings] = lambda: settings
+    mocker.patch("izba_reader.main.get_settings", return_value=settings)
+
     return settings

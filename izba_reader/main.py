@@ -36,10 +36,6 @@ from izba_reader.tasks import get_from_html, get_from_rss
 if not constants.IMAGES_ROOT.is_dir():
     constants.IMAGES_ROOT.mkdir()
 
-_settings = get_settings()
-rollbar.init(_settings.rollbar_access_token, _settings.environment)
-rollbar.events.add_payload_handler(ignore_handler)
-
 app = FastAPI()
 app.add_middleware(RollbarMiddleware)
 app.mount(
@@ -47,6 +43,13 @@ app.mount(
     StaticFiles(directory=constants.IMAGES_ROOT),
     name=constants.IMAGES_ROOT.name,
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    settings = get_settings()
+    rollbar.init(settings.rollbar_access_token, settings.environment)
+    rollbar.events.add_payload_handler(ignore_handler)
 
 
 @app.get(

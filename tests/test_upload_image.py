@@ -6,7 +6,7 @@ from izba_reader import constants, routes
 
 
 @pytest.mark.asyncio
-async def test_ok(async_client, image_file):
+async def test_ok(async_client, image_file, mocked_rollbar):
     path = image_file(3000, 4000)
 
     with open(path, "rb") as img:
@@ -30,6 +30,8 @@ async def test_ok(async_client, image_file):
         str(constants.IMAGES_ROOT / response_data["filename"].split("/")[-1]), 0
     )
     assert img.shape == (750, 1000)
+
+    mocked_rollbar["izba_reader.main.rollbar"].report_message.assert_called_once()
 
 
 @pytest.mark.asyncio

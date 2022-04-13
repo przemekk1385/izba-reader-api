@@ -9,7 +9,7 @@ from izba_reader import routes
 @pytest.mark.usefixtures(
     "settings_override", "mocked_html_services", "mocked_rss_services"
 )
-async def test_ok(async_client, faker, mocked_cache, mocker):
+async def test_ok(async_client, faker, mocked_cache, mocked_rollbar, mocker):
     email = faker.email()
 
     mocked_cache.get_cache.return_value = None
@@ -22,3 +22,7 @@ async def test_ok(async_client, faker, mocked_cache, mocker):
     assert email in mocked_send_message.call_args[0][0].recipients
 
     assert mocked_cache.get_cache.call_count == mocked_cache.set_cache.call_count == 2
+
+    mocked_rollbar[
+        "izba_reader.services.mail.rollbar"
+    ].report_message.assert_called_once()

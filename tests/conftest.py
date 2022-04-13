@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Callable
+from typing import Callable, Generator
+from unittest.mock import Mock
 
 import cv2
 import numpy as np
@@ -15,14 +16,26 @@ from izba_reader.services import html, rss
 from izba_reader.settings import Settings
 
 
+@pytest.fixture(scope="session", autouse=True)
+def session_mocked_rollbar(session_mocker) -> dict[str, Mock]:
+    return {
+        module: session_mocker.patch(module, return_value=Mock())
+        for module in (
+            "izba_reader.main.rollbar",
+            "izba_reader.tasks.rollbar",
+            "izba_reader.services.mail.rollbar",
+        )
+    }
+
+
 @pytest_asyncio.fixture
-async def async_client():
+async def async_client() -> Generator[AsyncClient, None, None]:
     async with AsyncClient(app=app, base_url="http://test") as ac, LifespanManager(app):
         yield ac
 
 
 @pytest.fixture
-def image_file(faker, tmp_path) -> Callable:
+def image_file(faker, tmp_path) -> Callable[[int, int], Path]:
     def make_image_file(height: int = 1, width: int = 1) -> Path:
         path = tmp_path / f"{faker.uuid4()}.jpg"
 
@@ -74,6 +87,13 @@ def mocked_html_services(faker, mocker) -> tuple[dict, dict]:
 
 
 @pytest.fixture
+def mocked_rollbar(session_mocked_rollbar) -> Generator[dict[str, Mock], None, None]:
+    yield session_mocked_rollbar
+    for mocked_rollbar in session_mocked_rollbar.values():
+        mocked_rollbar.report_message.reset_mock()
+
+
+@pytest.fixture
 def mocked_rss_services(faker, mocker) -> tuple[dict, dict]:
     return_value = {
         name: [
@@ -96,7 +116,7 @@ def mocked_rss_services(faker, mocker) -> tuple[dict, dict]:
 
 
 @pytest.fixture
-def settings_override(faker, mocker):
+def settings_override(faker, mocker) -> Settings:
     email = faker.email()
     settings = Settings(
         mail_from=email,

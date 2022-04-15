@@ -12,6 +12,9 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Install libnss3"
+          command: "apt-get install libnss3"
+      - run:
           name: "Install poetry"
           command: poetry install
       - run:

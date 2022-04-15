@@ -8,6 +8,7 @@ jobs:
   build:
     docker:
       - image: cimg/python:3.10.1
+      - image: cimg/redis:6.2.6
     steps:
       - checkout
       - run:

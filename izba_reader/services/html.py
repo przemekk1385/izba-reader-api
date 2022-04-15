@@ -12,7 +12,7 @@ __all__ = ["scrap_cire_pl"]
 
 @asynccontextmanager
 async def get_browser() -> Browser:
-    browser = await launch(options={"args": ["--no-sandbox"], "autoClose": False})
+    browser = await launch(options={"args": ["--no-sandbox"], "dumpio": True})
     try:
         yield browser
     finally:

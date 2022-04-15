@@ -12,11 +12,18 @@ jobs:
     steps:
       - checkout
       - run:
-          name: "Install pypetteer required stuff"
+          name: "Install Chrome-required libraries"
           command: |
             sudo apt-get update &&
-            sudo apt-get install -y libxcursor1 libxdamage1 libcups2 libasound2 libpangocairo-1.0-0 libatk1.0-0 \
-              libatk-bridge2.0-0 libgtk-3-0
+            sudo apt-get install -y \
+              libxcursor1 \
+              libxdamage1 \
+              libcups2 \
+              libasound2 \
+              libpangocairo-1.0-0 \
+              libatk1.0-0 \
+              libatk-bridge2.0-0 \
+              libgtk-3-0
       - run:
           name: "Install poetry"
           command: poetry install

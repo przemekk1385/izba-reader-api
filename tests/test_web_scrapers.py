@@ -7,8 +7,10 @@ from izba_reader import routes, timezones
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("mail_settings_override")
-async def test_ok(async_client, faker, mocked_cache, mocked_html_services):
+@pytest.mark.usefixtures("settings_override")
+async def test_ok(
+    async_client, faker, mocked_cache, mocked_html_services, mocked_rollbar
+):
     mocked_service, return_value = mocked_html_services
     all_items = list(itertools.chain(*return_value.values()))
 
@@ -30,11 +32,14 @@ async def test_ok(async_client, faker, mocked_cache, mocked_html_services):
     for service in mocked_service.values():
         service.assert_not_called()
     mocked_cache.set_cache.assert_not_called()
+    mocked_rollbar["izba_reader.tasks.rollbar"].report_message.assert_called_once()
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("mail_settings_override")
-async def test_ok_when_no_cache(async_client, mocked_cache, mocked_html_services):
+@pytest.mark.usefixtures("settings_override")
+async def test_ok_when_no_cache(
+    async_client, mocked_cache, mocked_html_services, mocked_rollbar
+):
     mocked_service, return_value = mocked_html_services
     all_items = list(itertools.chain(*return_value.values()))
 
@@ -51,3 +56,4 @@ async def test_ok_when_no_cache(async_client, mocked_cache, mocked_html_services
     for service in mocked_service.values():
         service.assert_called_once()
     mocked_cache.set_cache.assert_called_once()
+    mocked_rollbar["izba_reader.tasks.rollbar"].report_message.assert_called_once()

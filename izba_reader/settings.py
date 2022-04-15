@@ -16,6 +16,5 @@ class Settings(BaseSettings):
     mail_subject: str
     mail_username: str
 
-
-def get_settings() -> Settings:
-    return Settings()
+    environment: str
+    rollbar_access_token: str

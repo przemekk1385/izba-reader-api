@@ -1,15 +1,11 @@
 import json
 from datetime import datetime
 
-import aioredis
 from aioredis import Redis
 from fastapi import Depends
 
-from izba_reader.settings import Settings, get_settings
-
-
-def get_redis(settings: Settings = Depends(get_settings)):
-    return aioredis.from_url(settings.redis_url, decode_responses=True)
+from izba_reader.dependencies import get_redis, get_settings
+from izba_reader.settings import Settings
 
 
 async def get_cache(key, redis: Redis = Depends(get_redis)) -> dict:

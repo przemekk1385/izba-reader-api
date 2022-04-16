@@ -16,5 +16,5 @@ class Settings(BaseSettings):
     mail_subject: str
     mail_username: str
 
-    environment: str
+    environment: str = "production"
     rollbar_access_token: str

@@ -17,7 +17,7 @@ from fastapi import (
     status,
 )
 from pydantic import EmailStr
-from rollbar.contrib.fastapi import ReporterMiddleware as RollbarMiddleware
+from rollbar.contrib.fastapi import add_to as rollbar_add_to
 from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes
@@ -37,12 +37,13 @@ if not constants.IMAGES_ROOT.is_dir():
     constants.IMAGES_ROOT.mkdir()
 
 app = FastAPI()
-app.add_middleware(RollbarMiddleware)
 app.mount(
     constants.IMAGES_URL,
     StaticFiles(directory=constants.IMAGES_ROOT),
     name=constants.IMAGES_ROOT.name,
 )
+
+rollbar_add_to(app)
 
 
 @app.on_event("startup")

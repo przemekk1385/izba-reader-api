@@ -131,7 +131,9 @@ async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) 
     path = constants.IMAGES_ROOT / f"{uuid4()}.jpg"
     cv2.imwrite(str(path), img)
 
-    rollbar.report_message(f"Uploaded {path.name}", level="info", request=request)
+    rollbar.report_message(
+        "Image uploaded", level="info", extra_data={"name": path.name}, request=request
+    )
 
     return {"filename": f"{constants.IMAGES_URL}{path.name}"}
 

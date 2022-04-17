@@ -77,4 +77,6 @@ async def send_message(
 
     fm = FastMail(connection_config)
     await fm.send_message(message)
-    rollbar.report_message(f"Email sent to {email}", level="info", request=request)
+    rollbar.report_message(
+        "Email sent", level="info", extra_data={"email": email}, request=request
+    )

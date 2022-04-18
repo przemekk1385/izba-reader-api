@@ -1,3 +1,4 @@
+HEADERS = "/headers"
 HEALTH = "/health"
 UPLOAD_IMAGE = "/upload-image"
 RSS_FEEDS = "/rss-feeds"

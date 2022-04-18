@@ -23,7 +23,8 @@ from starlette.staticfiles import StaticFiles
 from izba_reader import constants, routes
 from izba_reader.dependencies import get_redis, get_settings
 from izba_reader.models import (
-    Message,
+    HeadersListResponse,
+    MessageResponse,
     RssFeedsResponse,
     UploadImageResponse,
     WebScrapersResponse,
@@ -33,17 +34,18 @@ from izba_reader.services.mail import send_message
 from izba_reader.settings import Settings
 from izba_reader.tasks import get_from_html, get_from_rss
 
-if not constants.IMAGES_ROOT.is_dir():
-    constants.IMAGES_ROOT.mkdir()
+if not constants.MEDIA_ROOT.is_dir():
+    constants.MEDIA_ROOT.mkdir()
 
 app = FastAPI()
-app.mount(
-    constants.IMAGES_URL,
-    StaticFiles(directory=constants.IMAGES_ROOT),
-    name=constants.IMAGES_ROOT.name,
-)
 
 rollbar_add_to(app)
+
+app.mount(
+    constants.MEDIA_URL,
+    StaticFiles(directory=constants.MEDIA_ROOT),
+    name=constants.MEDIA_ROOT.name,
+)
 
 
 @app.on_event("startup")
@@ -51,6 +53,15 @@ async def startup_event():
     settings = get_settings()
     rollbar.init(settings.rollbar_access_token, settings.environment)
     rollbar.events.add_payload_handler(ignore_handler)
+
+
+@app.get(routes.HEADERS, response_model=HeadersListResponse)
+def headers(request: Request):
+    return [
+        f"{str(request.base_url)[:-1]}{constants.MEDIA_URL}{header.name}"
+        for header in constants.MEDIA_ROOT.glob("**/*")
+        if header.is_file()
+    ]
 
 
 @app.get(
@@ -102,7 +113,7 @@ async def web_scrapers(
 
 @app.post(
     routes.UPLOAD_IMAGE,
-    responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": Message}},
+    responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": MessageResponse}},
     response_model=UploadImageResponse,
 )
 async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) -> dict:
@@ -128,14 +139,14 @@ async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) 
     if img.shape[1] > 1000:
         img = cv2.resize(img, (1000, 750))
 
-    path = constants.IMAGES_ROOT / f"{uuid4()}.jpg"
+    path = constants.MEDIA_ROOT / f"{uuid4()}.jpg"
     cv2.imwrite(str(path), img)
 
     rollbar.report_message(
         "Image uploaded", level="info", extra_data={"name": path.name}, request=request
     )
 
-    return {"filename": f"{constants.IMAGES_URL}{path.name}"}
+    return {"filename": f"{constants.MEDIA_URL}{path.name}"}
 
 
 @app.get(routes.SEND_MAIL, response_model=None, status_code=status.HTTP_202_ACCEPTED)

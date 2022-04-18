@@ -28,7 +28,7 @@ async def test_ok(async_client, image_file, mocked_rollbar):
     assert response_data["filename"]
 
     img = cv2.imread(
-        str(constants.IMAGES_ROOT / response_data["filename"].split("/")[-1]), 0
+        str(constants.MEDIA_ROOT / response_data["filename"].split("/")[-1]), 0
     )
     assert img.shape == (750, 1000)
 

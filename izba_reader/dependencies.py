@@ -1,9 +1,12 @@
+from functools import lru_cache
+
 import aioredis
 from fastapi import Depends
 
 from izba_reader.settings import Settings
 
 
+@lru_cache
 def get_settings() -> Settings:
     return Settings()
 

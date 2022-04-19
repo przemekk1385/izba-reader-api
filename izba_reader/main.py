@@ -16,6 +16,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import EmailStr
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
 from starlette.staticfiles import StaticFiles
@@ -37,8 +38,13 @@ from izba_reader.tasks import get_from_html, get_from_rss
 if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
 
+settings = get_settings()
+
+rollbar.init(settings.rollbar_access_token, settings.environment)
+
 app = FastAPI()
 
+rollbar.events.add_payload_handler(ignore_handler)
 rollbar_add_to(app)
 
 app.mount(
@@ -46,13 +52,13 @@ app.mount(
     StaticFiles(directory=constants.MEDIA_ROOT),
     name=constants.MEDIA_ROOT.name,
 )
-
-
-@app.on_event("startup")
-async def startup_event():
-    settings = get_settings()
-    rollbar.init(settings.rollbar_access_token, settings.environment)
-    rollbar.events.add_payload_handler(ignore_handler)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allow_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get(routes.HEADERS, response_model=HeadersListResponse)

@@ -18,3 +18,5 @@ class Settings(BaseSettings):
 
     environment: str = "production"
     rollbar_access_token: str
+
+    cors_allow_origins: list[str]

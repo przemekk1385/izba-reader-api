@@ -1,4 +1,5 @@
 import sys
+from decimal import Decimal
 from uuid import uuid4
 
 import cv2
@@ -134,9 +135,11 @@ async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) 
         )
 
     img = await get_opencv_img_from_buffer(uploaded_file, cv2.IMREAD_UNCHANGED)
-    aspect_ratio = img.shape[1] / img.shape[0]
+    aspect_ratio = Decimal(str(img.shape[1])) / Decimal(str(img.shape[0]))
 
-    if aspect_ratio != 4 / 3:
+    if aspect_ratio.quantize(
+        constants.THREE_DECIMAL_PLACES
+    ) != constants.VALID_ASPECT_RATIO.quantize(constants.THREE_DECIMAL_PLACES):
         raise HTTPException(
             status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="4:3 aspect ratio image required",

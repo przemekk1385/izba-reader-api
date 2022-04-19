@@ -1,12 +1,13 @@
 import pytest
-from starlette import status
+from fastapi import status
 
-from izba_reader import app, routes
+from izba_reader import routes
 from izba_reader.dependencies import get_settings
 
 
 @pytest.fixture
-def break_redis(faker, settings_override):
+def break_redis(app, faker):
+    settings_override = get_settings()
     settings_override.redis_url = (
         f"redis://{faker.uri_path(deep=1)}:{faker.port_number(is_dynamic=True)}"
     )
@@ -15,7 +16,6 @@ def break_redis(faker, settings_override):
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_ok(async_client, mocked_rollbar):
     response = await async_client.get(routes.HEALTH)
 

@@ -7,7 +7,6 @@ from izba_reader import routes, timezones
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_ok(
     async_client, faker, mocked_cache, mocked_rollbar, mocked_rss_services
 ):
@@ -36,7 +35,6 @@ async def test_ok(
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_ok_when_no_cache(
     async_client, mocked_cache, mocked_rollbar, mocked_rss_services
 ):

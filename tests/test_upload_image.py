@@ -6,6 +6,7 @@ from izba_reader import constants, routes
 
 
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("cleanup_test_media_files", "mark_test_media_files")
 async def test_ok(async_client, image_file, mocked_rollbar):
     path = image_file(3000, 4000)
 

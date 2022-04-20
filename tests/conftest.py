@@ -11,7 +11,7 @@ import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 
-from izba_reader import timezones
+from izba_reader import constants, timezones
 from izba_reader.services import html, rss
 
 
@@ -42,7 +42,14 @@ def app(faker, mocker):
 
     from izba_reader.main import app as fastapi_app
 
-    yield fastapi_app
+    return fastapi_app
+
+
+@pytest.fixture
+def cleanup_test_media_files():
+    yield
+    for path in constants.MEDIA_ROOT.glob("**/test_*"):
+        path.unlink()
 
 
 @pytest.fixture
@@ -62,6 +69,11 @@ def image_file(faker, tmp_path) -> Callable[[int, int], Path]:
         return path
 
     return make_image_file
+
+
+@pytest.fixture
+def mark_test_media_files(app, faker, mocker):
+    mocker.patch("izba_reader.main.uuid4", return_value=f"test_{faker.uuid4()}")
 
 
 @pytest.fixture(autouse=True)

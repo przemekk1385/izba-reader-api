@@ -11,7 +11,6 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     FastAPI,
-    File,
     HTTPException,
     Request,
     UploadFile,
@@ -26,9 +25,8 @@ from izba_reader import constants, routes
 from izba_reader.dependencies import get_redis, get_settings
 from izba_reader.models import (
     HeadersListResponse,
-    MessageResponse,
     RssFeedsResponse,
-    UploadImageResponse,
+    UploadImagesResponse,
     WebScrapersResponse,
 )
 from izba_reader.rollbar_handlers import ignore_handler
@@ -120,42 +118,63 @@ async def web_scrapers(
 
 @app.post(
     routes.UPLOAD_IMAGE,
-    responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": MessageResponse}},
-    response_model=UploadImageResponse,
+    response_model=UploadImagesResponse,
 )
-async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) -> dict:
+async def upload_image(
+    request: Request, uploaded_images: list[UploadFile] = None
+) -> list[dict]:
     async def get_opencv_img_from_buffer(buffer, flags):
         bytes_as_np_array = np.frombuffer(await buffer.read(), dtype=np.uint8)
         return cv2.imdecode(bytes_as_np_array, flags)
 
-    if uploaded_file.content_type != "image/jpeg":
-        raise HTTPException(
-            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"Unhandled MIME type '{uploaded_file.content_type}'",
-        )
+    result = []
+    for uploaded_image in uploaded_images or []:
+        if uploaded_image.content_type != "image/jpeg":
+            result.append(
+                {
+                    "filename": uploaded_image.filename,
+                    "error": "UNHANDLED_MIME_TYPE",
+                }
+            )
+        else:
+            img = await get_opencv_img_from_buffer(uploaded_image, cv2.IMREAD_UNCHANGED)
+            aspect_ratio = Decimal(str(img.shape[1])) / Decimal(str(img.shape[0]))
 
-    img = await get_opencv_img_from_buffer(uploaded_file, cv2.IMREAD_UNCHANGED)
-    aspect_ratio = Decimal(str(img.shape[1])) / Decimal(str(img.shape[0]))
+            if aspect_ratio.quantize(
+                constants.THREE_DECIMAL_PLACES
+            ) != constants.VALID_ASPECT_RATIO.quantize(constants.THREE_DECIMAL_PLACES):
+                result.append(
+                    {
+                        "filename": uploaded_image.filename,
+                        "error": "INVALID_ASPECT_RATIO",
+                    }
+                )
+            else:
+                if img.shape[1] > 1000:
+                    img = cv2.resize(img, (1000, 750))
 
-    if aspect_ratio.quantize(
-        constants.THREE_DECIMAL_PLACES
-    ) != constants.VALID_ASPECT_RATIO.quantize(constants.THREE_DECIMAL_PLACES):
-        raise HTTPException(
-            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="4:3 aspect ratio image required",
-        )
+                path = constants.MEDIA_ROOT / f"{uuid4()}.jpg"
+                cv2.imwrite(str(path), img)
 
-    if img.shape[1] > 1000:
-        img = cv2.resize(img, (1000, 750))
+                result.append(
+                    {
+                        "filename": uploaded_image.filename,
+                        "url": (
+                            f"{str(request.base_url)[:-1]}"
+                            f"{constants.MEDIA_URL}"
+                            f"{path.name}"
+                        ),
+                    }
+                )
 
-    path = constants.MEDIA_ROOT / f"{uuid4()}.jpg"
-    cv2.imwrite(str(path), img)
+                rollbar.report_message(
+                    "Image uploaded",
+                    level="info",
+                    extra_data={"name": path.name},
+                    request=request,
+                )
 
-    rollbar.report_message(
-        "Image uploaded", level="info", extra_data={"name": path.name}, request=request
-    )
-
-    return {"filename": f"{constants.MEDIA_URL}{path.name}"}
+    return result
 
 
 @app.get(routes.SEND_MAIL, response_model=None, status_code=status.HTTP_202_ACCEPTED)

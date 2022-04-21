@@ -3,36 +3,48 @@ import pytest
 from fastapi import status
 
 from izba_reader import constants, routes
+from izba_reader.enums import UploadImagesError
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("cleanup_test_media_files", "mark_test_media_files")
 async def test_ok(async_client, image_file, mocked_rollbar):
-    path = image_file(3000, 4000)
-
-    with open(path, "rb") as img:
+    with open(image_file(3000, 4000), "rb") as img1, open(
+        image_file(3000, 4000), "rb"
+    ) as img2:
         response = await async_client.post(
             routes.UPLOAD_IMAGE,
-            files={
-                "uploaded_file": (
-                    img.name,
-                    img,
-                    # "image/jpeg"
-                )
-            },
+            files=[
+                (
+                    "uploaded_images",
+                    (
+                        img1.name,
+                        img1,
+                        # "image/jpeg"
+                    ),
+                ),
+                (
+                    "uploaded_images",
+                    (
+                        img2.name,
+                        img2,
+                        # "image/jpeg"
+                    ),
+                ),
+            ],
         )
 
     assert response.status_code == status.HTTP_200_OK, response.json()
 
     response_data = response.json()
-    assert response_data["filename"]
+    assert len(response_data) == 2
+    assert all("url" in item for item in response_data)
 
-    img = cv2.imread(
-        str(constants.MEDIA_ROOT / response_data["filename"].split("/")[-1]), 0
-    )
-    assert img.shape == (750, 1000)
+    for item in response_data:
+        img = cv2.imread(str(constants.MEDIA_ROOT / item["url"].split("/")[-1]), 0)
+        assert img.shape == (750, 1000)
 
-    mocked_rollbar["izba_reader.main.rollbar"].report_message.assert_called_once()
+    assert mocked_rollbar["izba_reader.main.rollbar"].report_message.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -41,19 +53,17 @@ async def test_invalid_mime_type(async_client):
         response = await async_client.post(
             routes.UPLOAD_IMAGE,
             files={
-                "uploaded_file": (
+                "uploaded_images": (
                     f.name,
                     f,
                 )
             },
         )
 
-    assert (
-        response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
-    ), response.json()
+    assert response.status_code == status.HTTP_200_OK, response.json()
 
     response_data = response.json()
-    assert "text/x-python" in response_data["detail"]
+    assert response_data[0]["error"] == UploadImagesError.UNHANDLED_MIME_TYPE.value
 
 
 @pytest.mark.asyncio
@@ -64,7 +74,7 @@ async def test_invalid_aspect_ratio(async_client, image_file):
         response = await async_client.post(
             routes.UPLOAD_IMAGE,
             files={
-                "uploaded_file": (
+                "uploaded_images": (
                     img.name,
                     img,
                     # "image/jpeg"
@@ -72,9 +82,7 @@ async def test_invalid_aspect_ratio(async_client, image_file):
             },
         )
 
-    assert (
-        response.status_code == status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
-    ), response.json()
+    assert response.status_code == status.HTTP_200_OK, response.json()
 
     response_data = response.json()
-    assert "4:3" in response_data["detail"]
+    assert response_data[0]["error"] == UploadImagesError.INVALID_ASPECT_RATIO.value

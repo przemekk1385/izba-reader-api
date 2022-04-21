@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from izba_reader.enums import UploadImagesError
+
 
 class Feed(BaseModel):
     title: str
@@ -34,5 +36,15 @@ class MessageResponse(BaseModel):
     detail: str
 
 
-class UploadImageResponse(BaseModel):
+class UploadFailed(BaseModel):
     filename: str
+    error: UploadImagesError
+
+
+class UploadSuccessfull(BaseModel):
+    filename: str
+    url: str
+
+
+class UploadImagesResponse(BaseModel):
+    __root__: list[UploadSuccessfull | UploadFailed]

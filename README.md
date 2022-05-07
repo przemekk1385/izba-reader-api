@@ -1,3 +1,6 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![CircleCI](https://circleci.com/gh/przemekk1385/izba-reader.svg?style=shield&circle-token=e583a0d895060bf37fa621a2b4ed066482c7baba)](https://app.circleci.com/pipelines/github/przemekk1385/izba-reader)
+
 # Overview
 
 `izba-reader` is an app created for gathering news from RSS feeds and scraped websites.

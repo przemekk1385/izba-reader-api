@@ -4,6 +4,7 @@ from fastapi import BackgroundTasks, Depends, Request
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
 from pydantic import EmailStr
 
+from izba_reader.decorators import async_report_exceptions
 from izba_reader.dependencies import get_redis, get_settings
 from izba_reader.settings import Settings
 from izba_reader.tasks import get_both
@@ -48,6 +49,7 @@ async def make_text_message(
     )
 
 
+@async_report_exceptions
 async def send_message(
     background_tasks: BackgroundTasks,
     email: EmailStr,

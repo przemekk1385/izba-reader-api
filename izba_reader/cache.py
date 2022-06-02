@@ -4,6 +4,7 @@ from datetime import datetime
 from aioredis import Redis
 from fastapi import Depends
 
+from izba_reader.decorators import async_report_exceptions
 from izba_reader.dependencies import get_redis, get_settings
 from izba_reader.settings import Settings
 
@@ -12,6 +13,7 @@ async def get_cache(key, redis: Redis = Depends(get_redis)) -> dict:
     return json.loads(await redis.get(key) or "{}")
 
 
+@async_report_exceptions
 async def set_cache(
     key: str,
     value: dict,

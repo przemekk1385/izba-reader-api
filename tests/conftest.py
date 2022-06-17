@@ -11,7 +11,7 @@ from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 
 from izba_reader import app, timezones
-from izba_reader.dependencies import get_settings
+from izba_reader.dependencies import get_redis, get_settings
 from izba_reader.services import html, rss
 from izba_reader.settings import Settings
 
@@ -21,6 +21,7 @@ def session_mocked_rollbar(session_mocker) -> dict[str, Mock]:
     return {
         module: session_mocker.patch(module, return_value=Mock())
         for module in (
+            "izba_reader.decorators.rollbar",
             "izba_reader.main.rollbar",
             "izba_reader.tasks.rollbar",
             "izba_reader.services.mail.rollbar",

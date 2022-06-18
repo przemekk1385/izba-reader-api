@@ -2,6 +2,7 @@ import sys
 from uuid import uuid4
 
 import cv2
+import magic
 import numpy as np
 import rollbar
 from aioredis import Redis
@@ -117,17 +118,16 @@ async def web_scrapers(
     response_model=UploadImageResponse,
 )
 async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) -> dict:
-    async def get_opencv_img_from_buffer(buffer, flags):
-        bytes_as_np_array = np.frombuffer(await buffer.read(), dtype=np.uint8)
-        return cv2.imdecode(bytes_as_np_array, flags)
+    buffer = await uploaded_file.read()
 
-    if uploaded_file.content_type != "image/jpeg":
+    if magic.from_buffer(buffer, mime=True) != "image/jpeg":
         raise HTTPException(
             status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail=f"Unhandled MIME type '{uploaded_file.content_type}'",
         )
 
-    img = await get_opencv_img_from_buffer(uploaded_file, cv2.IMREAD_UNCHANGED)
+    bytes_as_np_array = np.frombuffer(buffer, dtype=np.uint8)
+    img = cv2.imdecode(bytes_as_np_array, cv2.IMREAD_UNCHANGED)
     aspect_ratio = img.shape[1] / img.shape[0]
 
     if aspect_ratio != 4 / 3:

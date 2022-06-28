@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+  web:
+    build:
+      context: .
+    environment:
+      - MAIL_FROM
+      - MAIL_PASSWORD
+      - MAIL_PORT
+      - MAIL_SERVER
+      - MAIL_SUBJECT
+      - MAIL_USERNAME
+      - ROLLBAR_ACCESS_TOKEN
+    command: uvicorn izba_reader:main.app
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"

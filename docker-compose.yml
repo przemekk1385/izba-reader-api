@@ -19,4 +19,4 @@ services:
     depends_on:
       - redis
     ports:
-      - "8000:8000"
+      - "1304:8000"

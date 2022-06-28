@@ -231,6 +231,20 @@ trio = ["trio (>=0.14,<0.20)"]
 wmi = ["wmi (>=1.5.1,<2.0.0)"]
 
 [[package]]
+name = "doppler-env"
+version = "0.3.0"
+description = "Inject Doppler secrets as environment variables into your Python application during local development with debugging support for PyCharm and Visual Studio Code."
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+python-dotenv = "*"
+
+[package.extras]
+dev = ["check-manifest"]
+
+[[package]]
 name = "email-validator"
 version = "1.2.1"
 description = "A robust email syntax and deliverability validation library."
@@ -1007,7 +1021,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "3.10.4"
-content-hash = "4a50497055a705e5105ab92a04080f35739ab297117c1bc1c2b7de32650c7c13"
+content-hash = "26edab9fc2b71cc04858f45c8f11e1e1730b461e802c03e73cd1bd0f918c7f76"
 
 [metadata.files]
 aioredis = [
@@ -1109,6 +1123,10 @@ distlib = [
 dnspython = [
     {file = "dnspython-2.2.1-py3-none-any.whl", hash = "sha256:a851e51367fb93e9e1361732c1d60dab63eff98712e503ea7d92e6eccb109b4f"},
     {file = "dnspython-2.2.1.tar.gz", hash = "sha256:0f7569a4a6ff151958b64304071d370daa3243d15941a7beedf0c9fe5105603e"},
+]
+doppler-env = [
+    {file = "doppler_env-0.3.0-py3-none-any.whl", hash = "sha256:83536e429e82ca8e80884da717dd7728080726cc89638783b7ee8e67c8535e91"},
+    {file = "doppler_env-0.3.0.tar.gz", hash = "sha256:3fe296ff37e0e1973b36371c748855f6ee1e10e12f374c14b7f9377b262f5d78"},
 ]
 email-validator = [
     {file = "email_validator-1.2.1-py2.py3-none-any.whl", hash = "sha256:c8589e691cf73eb99eed8d10ce0e9cbb05a0886ba920c8bcb7c82873f4c5789c"},

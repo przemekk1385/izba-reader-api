@@ -5,6 +5,7 @@
 media/
 tests/
 
+.doppler.yaml
 .env*
 .flake8
 .gitignore

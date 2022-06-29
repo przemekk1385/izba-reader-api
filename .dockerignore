@@ -1,0 +1,17 @@
+.git/
+
+.circleci/
+.pytest-cache/
+media/
+tests/
+
+.doppler.yaml
+.env*
+.flake8
+.gitignore
+.isort.cfg
+.pre-commit-config.yaml
+.python-version
+docker-compose*.yml
+Dockerfile
+pytest.ini

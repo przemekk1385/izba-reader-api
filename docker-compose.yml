@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  redis:
+    image: redis
+  app:
+    build:
+      context: .
+    environment:
+      - ENVIRONMENT
+      - MAIL_FROM
+      - MAIL_PASSWORD
+      - MAIL_PORT
+      - MAIL_SERVER
+      - MAIL_SUBJECT
+      - MAIL_USERNAME
+      - REDIS_URL
+      - ROLLBAR_ACCESS_TOKEN
+    command: uvicorn --proxy-headers --host 0.0.0.0 --port 8000 izba_reader:main.app
+    depends_on:
+      - redis
+    ports:
+      - "1304:8000"

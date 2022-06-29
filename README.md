@@ -5,11 +5,7 @@
 
 `izba-reader` is an app created for gathering news from RSS feeds and scraped websites.
 
-# Installation
-
-As described below.
-
-## Environment variables
+# Configuration
 
 All variables that do not have a default value must be set to get the app up and running.
 
@@ -26,20 +22,30 @@ All variables that do not have a default value must be set to get the app up and
 | ENVIRONMENT          | environment name                   | production              |
 | ROLLBAR_ACCESS_TOKEN | Rollbar **post_server_item** token |
 
-## Heroku
+# CircleCI pipeline
 
-App can work on the Heroku cloud platform. Required buildpacks are listed below.
+Current CircleCI configuration is allows to deploy dockerized app to DigitalOcean droplet.
 
+Pipline uses SSH client image and custom `deploy.sh` script placed on droplet.
+
+Doppler CLI is used for injecting environment variables to Docker.
+
+## Knowledge base
+
+Below articles that might be handy:
+* [How To Automate Deployment Using CircleCI and GitHub on Ubuntu 18.04](https://www.digitalocean.com/community/tutorials/how-to-automate-deployment-using-circleci-and-github-on-ubuntu-18-04)
+* [Install CLI](https://docs.doppler.com/docs/install-cli)
+
+*deploy.sh*
 ```
-https://github.com/heroku/heroku-buildpack-apt
-https://github.com/jontewks/puppeteer-heroku-buildpack
-https://github.com/moneymeets/python-poetry-buildpack.git
-heroku/python
+#!/bin/bash
+
+cd $1
+git pull origin $2
+doppler run -t $3 -- docker-compose down
+doppler run -t $3 -- docker-compose up --build -d
 ```
 
-### CircleCI
+## Project settings
 
-To use CircleCI for automated Heroku deployments `izba-reader-prod` context with
-`HEROKU_API_KEY` and `HEROKU_APP_NAME` environment variables must be created.
-
-**Note**: deployments happens only from `master` branch.
+`USER`, `IP`, `DOPPLER_TOKEN` variables must be set in CircleCI project settings.

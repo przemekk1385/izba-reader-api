@@ -1,7 +1,6 @@
 version: 2.1
 
 orbs:
-  heroku: circleci/heroku@0.0.10
   python: circleci/python@1.5.0
 
 jobs:
@@ -30,12 +29,20 @@ jobs:
       - run:
           name: "Run pytest"
           command: poetry run pytest -s
+  deploy:
+    docker:
+      - image: arvindr226/alpine-ssh
+    steps:
+      - checkout
+      - run: |
+          ssh -oStrictHostKeyChecking=no -v $USER@$IP\
+          "./deploy.sh izba-reader master $DOPPLER_TOKEN"
 
 workflows:
-  heroku-deploy:
+  digitalocean-deploy:
     jobs:
       - build
-      - heroku/deploy-via-git:
+      - deploy:
           context: izba-reader-prod
           requires:
             - build

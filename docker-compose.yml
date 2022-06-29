@@ -8,12 +8,14 @@ services:
     build:
       context: .
     environment:
+      - ENVIRONMENT
       - MAIL_FROM
       - MAIL_PASSWORD
       - MAIL_PORT
       - MAIL_SERVER
       - MAIL_SUBJECT
       - MAIL_USERNAME
+      - REDIS_URL
       - ROLLBAR_ACCESS_TOKEN
     command: uvicorn izba_reader:main.app
     depends_on:

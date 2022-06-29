@@ -17,7 +17,7 @@ services:
       - MAIL_USERNAME
       - REDIS_URL
       - ROLLBAR_ACCESS_TOKEN
-    command: uvicorn izba_reader:main.app
+    command: uvicorn --proxy-headers --host 0.0.0.0 --port 8000 izba_reader:main.app
     depends_on:
       - redis
     ports:

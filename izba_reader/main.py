@@ -21,6 +21,7 @@ from fastapi import (
 )
 from pydantic import EmailStr, HttpUrl, Required
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
+from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes
@@ -38,6 +39,13 @@ app = FastAPI()
 
 rollbar_add_to(app)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=constants.ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.mount(
     constants.MEDIA_URL,
     StaticFiles(directory=constants.MEDIA_ROOT),

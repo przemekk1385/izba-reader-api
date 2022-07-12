@@ -1,6 +1,7 @@
-HEADERS = "/headers"
-HEALTH = "/health"
-UPLOAD_IMAGE = "/upload-image"
-RSS_FEEDS = "/rss-feeds"
-SEND_MAIL = "/send-mail"
-WEB_SCRAPERS = "/web-scrapers"
+HEADER_LIST = "/header"
+HEALTH_LIST = "/health"
+
+FEED_LIST = "/feeds"
+NEWS_LIST = "/news"
+
+MAIL_SEND = "/mail/send"

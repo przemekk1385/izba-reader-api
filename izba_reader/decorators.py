@@ -1,12 +1,15 @@
+from functools import wraps
+
 import rollbar
 
 
 def async_report_exceptions(func):
-    async def _async_report_exceptions(*args, **kwargs):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
         except Exception as e_info:  # noqa
-            rollbar.report_message(f"'{func.__name__}' has failed.", level="error")
             rollbar.report_exc_info()
+            raise
 
-    return _async_report_exceptions
+    return wrapper

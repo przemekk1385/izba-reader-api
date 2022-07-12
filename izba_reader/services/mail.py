@@ -1,24 +1,19 @@
+import itertools
+
 import rollbar
-from aioredis import Redis
-from fastapi import BackgroundTasks, Depends, Request
+from fastapi import Depends, Request
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
 from pydantic import EmailStr
 
+from izba_reader.constants import FEED_URLS, NEWS_URLS
 from izba_reader.decorators import async_report_exceptions
-from izba_reader.dependencies import get_redis, get_settings
+from izba_reader.dependencies import get_settings
+from izba_reader.services import fetch
 from izba_reader.settings import Settings
-from izba_reader.tasks import get_both
 
 
-async def make_text_message(
-    background_tasks: BackgroundTasks,
-    request: Request,
-    redis: Redis = Depends(get_redis),
-    settings: Settings = Depends(get_settings),
-) -> str:
-    feeds, news = await get_both(
-        background_tasks, request, redis=redis, settings=settings
-    )
+async def _make_text_message() -> str:
+    feeds, news = await fetch.rss(FEED_URLS), await fetch.html(NEWS_URLS)
 
     return "\n\n".join(
         [
@@ -28,9 +23,9 @@ async def make_text_message(
                     f"{item['title']}\n"
                     f"{item['description']}\n"
                     f"{item['link']}"
-                    for item in feeds["items"]
+                    for item in itertools.chain(*feeds.values())
                 ]
-                if feeds["items"]
+                if feeds
                 else ["no #rss"]
             ),
             "\n\n".join(
@@ -40,9 +35,9 @@ async def make_text_message(
                     f"{item['title']}\n"
                     f"{item['description']}\n"
                     f"{item['link']}"
-                    for item in news["items"]
+                    for item in itertools.chain(*news.values())
                 ]
-                if news["items"]
+                if news
                 else ["no #web"]
             ),
         ]
@@ -50,16 +45,12 @@ async def make_text_message(
 
 
 @async_report_exceptions
-async def send_message(
-    background_tasks: BackgroundTasks,
+async def send(
     email: EmailStr,
     request: Request,
-    redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ):
-    body = await make_text_message(
-        background_tasks, request, redis=redis, settings=settings
-    )
+    body = await _make_text_message()
 
     message = MessageSchema(
         subject=settings.mail_subject, recipients=[email], body=body

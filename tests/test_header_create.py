@@ -12,7 +12,7 @@ async def test_ok(async_client, image_file, mocked_rollbar):
 
     with open(path, "rb") as img:
         response = await async_client.post(
-            routes.UPLOAD_IMAGE,
+            routes.HEADER_LIST,
             files={
                 "uploaded_file": (
                     img.name,
@@ -40,7 +40,7 @@ async def test_ok(async_client, image_file, mocked_rollbar):
 async def test_invalid_mime_type(async_client):
     with open(__file__, "rb") as f:
         response = await async_client.post(
-            routes.UPLOAD_IMAGE,
+            routes.HEADER_LIST,
             files={
                 "uploaded_file": (
                     f.name,
@@ -64,7 +64,7 @@ async def test_invalid_aspect_ratio(async_client, image_file):
 
     with open(path, "rb") as img:
         response = await async_client.post(
-            routes.UPLOAD_IMAGE,
+            routes.HEADER_LIST,
             files={
                 "uploaded_file": (
                     img.name,

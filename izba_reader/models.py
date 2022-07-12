@@ -13,26 +13,9 @@ class News(Feed):
     date: datetime
 
 
-class BaseServiceResponseModel(BaseModel):
-    time: datetime
-    count: int
-
-
-class RssFeedsResponse(BaseServiceResponseModel):
-    items: list[Feed]
-
-
-class WebScrapersResponse(BaseServiceResponseModel):
-    items: list[News]
-
-
-class HeadersListResponse(BaseModel):
-    __root__: list[str]
-
-
 class MessageResponse(BaseModel):
     detail: str
 
 
-class UploadImageResponse(BaseModel):
+class HeaderCreateResponse(BaseModel):
     filename: str

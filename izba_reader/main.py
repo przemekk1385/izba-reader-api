@@ -1,4 +1,6 @@
+import itertools
 import sys
+from datetime import date
 from uuid import uuid4
 
 import cv2
@@ -12,27 +14,22 @@ from fastapi import (
     FastAPI,
     File,
     HTTPException,
+    Query,
     Request,
     UploadFile,
     status,
 )
-from pydantic import EmailStr
+from pydantic import EmailStr, HttpUrl, Required
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
 from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes
 from izba_reader.dependencies import get_redis, get_settings
-from izba_reader.models import (
-    HeadersListResponse,
-    MessageResponse,
-    RssFeedsResponse,
-    UploadImageResponse,
-    WebScrapersResponse,
-)
+from izba_reader.models import Feed, HeaderCreateResponse, MessageResponse, News
 from izba_reader.rollbar_handlers import ignore_handler
-from izba_reader.services.mail import send_message
+from izba_reader.services import fetch, mail
+from izba_reader.services.parser import get_parser
 from izba_reader.settings import Settings
-from izba_reader.tasks import get_from_html, get_from_rss
 
 if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
@@ -55,17 +52,8 @@ async def startup_event():
     rollbar.events.add_payload_handler(ignore_handler)
 
 
-@app.get(routes.HEADERS, response_model=HeadersListResponse)
-def headers(request: Request):
-    return [
-        f"{str(request.base_url)[:-1]}{constants.MEDIA_URL}{header.name}"
-        for header in constants.MEDIA_ROOT.glob("**/*")
-        if header.is_file()
-    ]
-
-
 @app.get(
-    routes.HEALTH,
+    routes.HEALTH_LIST,
     responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": None}},
     response_model=None,
 )
@@ -83,40 +71,23 @@ async def health(
         rollbar.report_message("Pong", level="info", request=request)
 
 
-@app.get(routes.RSS_FEEDS, response_model=RssFeedsResponse)
-async def rss_feeds(
-    background_tasks: BackgroundTasks,
-    request: Request,
-    redis: Redis = Depends(get_redis),
-    settings: Settings = Depends(get_settings),
-) -> dict:
-    feeds = await get_from_rss(
-        background_tasks, request, redis=redis, settings=settings
-    )
-
-    return {**feeds, "count": len(feeds["items"])}
-
-
-@app.get(routes.WEB_SCRAPERS, response_model=WebScrapersResponse)
-async def web_scrapers(
-    background_tasks: BackgroundTasks,
-    request: Request,
-    redis: Redis = Depends(get_redis),
-    settings: Settings = Depends(get_settings),
-) -> dict:
-    news = await get_from_html(
-        background_tasks, request, redis=redis, settings=settings
-    )
-
-    return {**news, "count": len(news["items"])}
+@app.get(routes.HEADER_LIST, response_model=list[HttpUrl])
+def header_list(request: Request):
+    return [
+        f"{str(request.base_url)[:-1]}{constants.MEDIA_URL}{header.name}"
+        for header in constants.MEDIA_ROOT.glob("**/*")
+        if header.is_file()
+    ]
 
 
 @app.post(
-    routes.UPLOAD_IMAGE,
+    routes.HEADER_LIST,
     responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": MessageResponse}},
-    response_model=UploadImageResponse,
+    response_model=HeaderCreateResponse,
 )
-async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) -> dict:
+async def header_create(
+    request: Request, uploaded_file: UploadFile = File(...)
+) -> dict:
     async def get_opencv_img_from_buffer(buffer, flags):
         bytes_as_np_array = np.frombuffer(await buffer.read(), dtype=np.uint8)
         return cv2.imdecode(bytes_as_np_array, flags)
@@ -149,15 +120,44 @@ async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) 
     return {"filename": f"{constants.MEDIA_URL}{path.name}"}
 
 
-@app.get(routes.SEND_MAIL, response_model=None, status_code=status.HTTP_202_ACCEPTED)
-async def send_mail(
+@app.get(routes.MAIL_SEND, response_model=None, status_code=status.HTTP_202_ACCEPTED)
+async def mail_send(
     background_tasks: BackgroundTasks,
     email: EmailStr,
     request: Request,
-    redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ) -> None:
-    background_tasks.add_task(
-        send_message, background_tasks, email, request, redis=redis, settings=settings
+    background_tasks.add_task(mail.send, email, request, settings=settings)
+
+
+@app.get(
+    routes.FEED_LIST,
+    response_model=list[Feed],
+)
+async def feed_list(
+    urls: list[HttpUrl] = Query(default=Required),
+) -> list[dict]:
+    rss = await fetch.rss(urls)
+
+    return list(
+        itertools.chain(*[get_parser(url.host)(feed) for url, feed in rss.items()])
     )
-    # await send_message()
+
+
+@app.get(
+    routes.NEWS_LIST,
+    response_model=list[News],
+)
+async def news_list(
+    dt: date,
+    urls: list[HttpUrl] = Query(default=Required),
+) -> list[dict]:
+    html = await fetch.html(urls)
+
+    return [
+        entry
+        for entry in itertools.chain(
+            *[get_parser(url.host)(page) for url, page in html.items()]
+        )
+        if entry["date"].date() == dt
+    ]

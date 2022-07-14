@@ -1,3 +1,4 @@
+HEADER_DETAIL = "/header/{identifier}"
 HEADER_LIST = "/header"
 HEALTH_LIST = "/health"
 

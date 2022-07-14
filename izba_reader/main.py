@@ -1,3 +1,4 @@
+import base64
 import itertools
 import sys
 from datetime import date
@@ -20,6 +21,7 @@ from fastapi import (
     status,
 )
 from pydantic import EmailStr, HttpUrl, Required
+from pydantic.types import UUID
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
@@ -79,10 +81,10 @@ async def health(
         rollbar.report_message("Pong", level="info", request=request)
 
 
-@app.get(routes.HEADER_LIST, response_model=list[HttpUrl])
-def header_list(request: Request):
+@app.get(routes.HEADER_LIST, response_model=list[str])
+def header_list():
     return [
-        f"{str(request.base_url)[:-1]}{constants.MEDIA_URL}{header.name}"
+        header.stem
         for header in constants.MEDIA_ROOT.glob("**/*")
         if header.is_file()
     ]
@@ -107,9 +109,12 @@ async def header_create(
         )
 
     img = await get_opencv_img_from_buffer(uploaded_file, cv2.IMREAD_UNCHANGED)
-    aspect_ratio = img.shape[1] / img.shape[0]
+    aspect_ratio = (
+        round(img.shape[1] / (img.shape[1] - img.shape[0])),
+        round(img.shape[0] / (img.shape[1] - img.shape[0]))
+    )
 
-    if aspect_ratio != 4 / 3:
+    if aspect_ratio != (4, 3):
         raise HTTPException(
             status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="4:3 aspect ratio image required",
@@ -125,7 +130,23 @@ async def header_create(
         "Image uploaded", level="info", extra_data={"name": path.name}, request=request
     )
 
-    return {"filename": f"{constants.MEDIA_URL}{path.name}"}
+    return {"uuid": path.stem}
+
+
+@app.get(
+    routes.HEADER_DETAIL,
+    responses={status.HTTP_404_NOT_FOUND: {"model": MessageResponse}},
+    response_model=bytes,
+)
+def header_retrieve(identifier: UUID) -> bytes:
+    try:
+        with open(constants.MEDIA_ROOT / f"{identifier}.jpg", "rb") as img_file:
+            return base64.b64encode(img_file.read())
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Header '{identifier}' not found",
+        ) from exc
 
 
 @app.get(routes.MAIL_SEND, response_model=None, status_code=status.HTTP_202_ACCEPTED)

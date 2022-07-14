@@ -18,4 +18,4 @@ class MessageResponse(BaseModel):
 
 
 class HeaderCreateResponse(BaseModel):
-    filename: str
+    uuid: str

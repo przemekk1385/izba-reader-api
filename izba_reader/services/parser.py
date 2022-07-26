@@ -39,9 +39,9 @@ def cire_pl(page: str) -> list[dict]:
 
         ret.append(
             {
-                "link": f"https://www.cire.pl{tag['href']}",
-                "description": description,
                 "title": title,
+                "description": description,
+                "url": f"https://www.cire.pl{tag['href']}",
                 "date": dt,
             }
         )
@@ -59,7 +59,7 @@ def biznesalert_pl(feed: str) -> list[dict]:
             "description": BeautifulSoup(item.find("description").text)
             .findAll("p")[0]
             .text,
-            "link": item.link.next_sibling.strip(),
+            "url": item.link.next_sibling.strip(),
         }
         for item in soup.findAll("item")
     ]
@@ -72,7 +72,7 @@ def wnp_pl(feed: str) -> list[dict]:
         {
             "title": item.find("title").text,
             "description": item.find("description").text,
-            "link": item.link.next_sibling.strip(),
+            "url": item.link.next_sibling.strip(),
         }
         for item in soup.findAll("item")
     ]
@@ -81,6 +81,6 @@ def wnp_pl(feed: str) -> list[dict]:
 def get_parser(host: str) -> Callable[[str], list[dict]]:
     return {
         "www.cire.pl": cire_pl,
-        "www.biznesalert.pl": biznesalert_pl,
+        "biznesalert.pl": biznesalert_pl,
         "www.wnp.pl": wnp_pl,
     }.get(host, lambda _: list())

@@ -2,7 +2,7 @@ import base64
 import itertools
 import sys
 from datetime import date
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import cv2
 import numpy as np
@@ -20,15 +20,15 @@ from fastapi import (
     UploadFile,
     status,
 )
-from pydantic import EmailStr, HttpUrl, Required
-from pydantic.types import UUID
+from pydantic import HttpUrl, Required
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes
+from izba_reader.constants import FEED_URLS, NEWS_URLS
 from izba_reader.dependencies import get_redis, get_settings
-from izba_reader.models import Feed, HeaderCreateResponse, MessageResponse, News
+from izba_reader.models import Feed, Header, Message, News, Review
 from izba_reader.rollbar_handlers import ignore_handler
 from izba_reader.services import fetch, mail
 from izba_reader.services.parser import get_parser
@@ -81,19 +81,17 @@ async def health(
         rollbar.report_message("Pong", level="info", request=request)
 
 
-@app.get(routes.HEADER_LIST, response_model=list[str])
+@app.get(routes.HEADER_LIST, response_model=list[UUID])
 def header_list():
     return [
-        header.stem
-        for header in constants.MEDIA_ROOT.glob("**/*")
-        if header.is_file()
+        header.stem for header in constants.MEDIA_ROOT.glob("**/*") if header.is_file()
     ]
 
 
 @app.post(
     routes.HEADER_LIST,
-    responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": MessageResponse}},
-    response_model=HeaderCreateResponse,
+    responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": Message}},
+    response_model=Header,
 )
 async def header_create(
     request: Request, uploaded_file: UploadFile = File(...)
@@ -111,7 +109,7 @@ async def header_create(
     img = await get_opencv_img_from_buffer(uploaded_file, cv2.IMREAD_UNCHANGED)
     aspect_ratio = (
         round(img.shape[1] / (img.shape[1] - img.shape[0])),
-        round(img.shape[0] / (img.shape[1] - img.shape[0]))
+        round(img.shape[0] / (img.shape[1] - img.shape[0])),
     )
 
     if aspect_ratio != (4, 3):
@@ -130,12 +128,12 @@ async def header_create(
         "Image uploaded", level="info", extra_data={"name": path.name}, request=request
     )
 
-    return {"uuid": path.stem}
+    return {"size": img.size, "uuid": path.stem}
 
 
 @app.get(
     routes.HEADER_DETAIL,
-    responses={status.HTTP_404_NOT_FOUND: {"model": MessageResponse}},
+    responses={status.HTTP_404_NOT_FOUND: {"model": Message}},
     response_model=bytes,
 )
 def header_retrieve(identifier: UUID) -> bytes:
@@ -149,19 +147,18 @@ def header_retrieve(identifier: UUID) -> bytes:
         ) from exc
 
 
-@app.get(routes.MAIL_SEND, response_model=None, status_code=status.HTTP_202_ACCEPTED)
+@app.post(routes.MAIL_SEND, response_model=None, status_code=status.HTTP_202_ACCEPTED)
 async def mail_send(
     background_tasks: BackgroundTasks,
-    email: EmailStr,
+    review: Review,
     request: Request,
     settings: Settings = Depends(get_settings),
 ) -> None:
-    background_tasks.add_task(mail.send, email, request, settings=settings)
+    background_tasks.add_task(mail.send, review, request, settings=settings)
 
 
 @app.get(
-    routes.FEED_LIST,
-    response_model=list[Feed],
+    routes.FEED_LIST, response_model=list[Feed], response_model_exclude_defaults=False
 )
 async def feed_list(
     urls: list[HttpUrl] = Query(default=Required),
@@ -174,11 +171,19 @@ async def feed_list(
 
 
 @app.get(
+    routes.FEED_URLS,
+    response_model=list[HttpUrl],
+)
+async def feed_urls() -> list[HttpUrl]:
+    return FEED_URLS
+
+
+@app.get(
     routes.NEWS_LIST,
     response_model=list[News],
 )
 async def news_list(
-    dt: date,
+    dt: date = date.today(),
     urls: list[HttpUrl] = Query(default=Required),
 ) -> list[dict]:
     html = await fetch.html(urls)
@@ -190,3 +195,11 @@ async def news_list(
         )
         if entry["date"].date() == dt
     ]
+
+
+@app.get(
+    routes.NEWS_URLS,
+    response_model=list[HttpUrl],
+)
+async def news_urls() -> list[HttpUrl]:
+    return NEWS_URLS

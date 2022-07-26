@@ -25,11 +25,10 @@ async def test_ok(async_client, image_file, mocked_rollbar):
     assert response.status_code == status.HTTP_200_OK, response.json()
 
     response_data = response.json()
-    assert response_data["filename"]
+    assert response_data["size"]
+    assert response_data["uuid"]
 
-    img = cv2.imread(
-        str(constants.MEDIA_ROOT / response_data["filename"].split("/")[-1]), 0
-    )
+    img = cv2.imread(str(constants.MEDIA_ROOT / f"{response_data['uuid']}.jpg"), 0)
     assert img.shape == (750, 1000)
 
     mocked_rollbar["izba_reader.main.rollbar"].report_message.assert_called_once()

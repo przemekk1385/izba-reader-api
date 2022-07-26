@@ -1,60 +1,62 @@
+from datetime import datetime, timedelta
+from typing import Callable
+
 import pytest
 from faker import Faker
+from faker.utils.text import slugify
 from fastapi import status
 from fastapi_mail import FastMail
-from pydantic import HttpUrl
 
-from izba_reader import routes, timezones
+from izba_reader import routes
 
 fake = Faker()
 
 
-async def mocked_fetch_html(urls: list[HttpUrl]) -> dict[HttpUrl, str]:
-    return {
-        url: [
-            {
-                "link": fake.uri(),
-                "description": fake.paragraph(),
-                "title": fake.sentence(),
-                "date": fake.date_time_this_month(
-                    before_now=True, tzinfo=timezones.EUROPE_WARSAW
-                ),
-            }
-            for _ in range(fake.random_int(min=2, max=10))
-        ]
-        for url in urls
-    }
+@pytest.fixture
+def make_url(faker) -> Callable[[str], str]:
+    def _make_url(slug: str) -> str:
+        return f"https://{faker.domain_name()}/{faker.random_number(digits=5)}/{slug}/"
+
+    return _make_url
 
 
-async def mocked_fetch_rss(urls: list[HttpUrl]) -> dict[HttpUrl, str]:
-    return {
-        url: [
+@pytest.fixture
+def articles(faker, make_url) -> list[dict]:
+    articles = []
+    for _ in range(fake.random_int(min=10, max=30)):
+        title = faker.sentence()[:-1]
+        articles.append(
             {
-                "title": fake.sentence(),
-                "description": fake.paragraph(),
-                "link": fake.uri(),
+                "title": title,
+                "description": faker.paragraph(),
+                "url": make_url(slugify(title)),
+                "uuid": faker.uuid4(),
             }
-            for _ in range(fake.random_int(min=2, max=10))
-        ]
-        for url in urls
-    }
+        )
+
+        if faker.boolean():
+            articles[-1]["date"] = (
+                datetime.now() - timedelta(minutes=faker.random_int(30, 90))
+            ).strftime("%Y-%m-%d %H:%M")
+
+    return articles
+
+
+@pytest.fixture
+def review(articles, faker):
+    return {"recipient": faker.email(), "articles": articles}
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("settings_override")
-async def test_ok(async_client, faker, mocked_rollbar, mocker):
-    email = faker.email()
-
-    mocker.patch("izba_reader.services.fetch.html", new=mocked_fetch_html)
-    mocker.patch("izba_reader.services.fetch.rss", new=mocked_fetch_rss)
-
+async def test_ok(async_client, mocked_rollbar, mocker, review):
     mocked_send_message = mocker.patch.object(FastMail, "send_message")
 
-    response = await async_client.get(routes.MAIL_SEND, params={"email": email})
+    response = await async_client.post(routes.MAIL_SEND, json=review)
 
     assert response.status_code == status.HTTP_202_ACCEPTED, response.json()
 
-    assert email in mocked_send_message.call_args[0][0].recipients
+    assert review["recipient"] in mocked_send_message.call_args[0][0].recipients
 
     mocked_rollbar[
         "izba_reader.services.mail.rollbar"

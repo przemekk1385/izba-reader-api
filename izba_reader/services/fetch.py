@@ -50,7 +50,7 @@ async def html(urls: list[HttpUrl]) -> dict[HttpUrl, str]:
         page = await browser.newPage()
         await page.goto(url, {"waitUntil": ["domcontentloaded", "networkidle0"]})
 
-        rollbar.report_message(f"\u2705 '{url}'")
+        rollbar.report_message("\u2705 html", level="info", extra_data={"url": url})
 
         return page.content()
 
@@ -66,10 +66,10 @@ async def rss(urls: list[HttpUrl]) -> dict[HttpUrl, str]:
     async def get_text(client_: AsyncClient, url: str) -> str:
         response = await client_.get(url, follow_redirects=True)
         if response.status_code == status.HTTP_200_OK:
-            rollbar.report_message(f"\u2705 '{url}'")
+            rollbar.report_message("\u2705 rss", level="info", extra_data={"url": url})
             return response.text
         else:
-            rollbar.report_message(f"\u274C '{url}'")
+            rollbar.report_message("\u274C rss", level="info", extra_data={"url": url})
 
     async with httpx.AsyncClient() as client:
         feeds = await asyncio.gather(

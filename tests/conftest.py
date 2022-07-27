@@ -15,8 +15,12 @@ from izba_reader.settings import Settings
 
 
 @pytest_asyncio.fixture
-async def async_client() -> Generator[AsyncClient, None, None]:
-    async with AsyncClient(app=app, base_url="http://test") as ac, LifespanManager(app):
+async def async_client(settings_override) -> Generator[AsyncClient, None, None]:
+    async with AsyncClient(
+        app=app,
+        base_url="http://test",
+        headers={"X-API-KEY": settings_override.api_key},
+    ) as ac, LifespanManager(app):
         yield ac
 
 
@@ -69,6 +73,7 @@ def mocked_rollbar(session_mocked_rollbar) -> Generator[dict[str, Mock], None, N
 def settings_override(faker, mocker) -> Settings:
     email = faker.email()
     settings = Settings(
+        api_key=faker.password(length=64),
         mail_from=email,
         mail_password=faker.password(),
         mail_port=faker.port_number(is_system=True),

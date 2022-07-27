@@ -30,6 +30,7 @@ from izba_reader import constants, routes
 from izba_reader.constants import FEED_URLS, NEWS_URLS
 from izba_reader.dependencies import get_api_key, get_redis, get_settings
 from izba_reader.models import Feed, Header, Message, News, Review
+from izba_reader.openapi import custom_openapi
 from izba_reader.rollbar_handlers import ignore_handler
 from izba_reader.services import fetch, mail
 from izba_reader.services.parser import get_parser
@@ -54,6 +55,7 @@ app.mount(
     StaticFiles(directory=constants.MEDIA_ROOT),
     name=constants.MEDIA_ROOT.name,
 )
+app.openapi = custom_openapi
 
 
 @app.on_event("startup")

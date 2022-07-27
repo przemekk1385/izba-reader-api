@@ -20,14 +20,15 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.models import APIKey
+from fastapi.staticfiles import StaticFiles
 from pydantic import HttpUrl, Required
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
-from starlette.middleware.cors import CORSMiddleware
-from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes
 from izba_reader.constants import FEED_URLS, NEWS_URLS
-from izba_reader.dependencies import get_redis, get_settings
+from izba_reader.dependencies import get_api_key, get_redis, get_settings
 from izba_reader.models import Feed, Header, Message, News, Review
 from izba_reader.rollbar_handlers import ignore_handler
 from izba_reader.services import fetch, mail
@@ -69,6 +70,7 @@ async def startup_event():
 )
 async def health(
     request: Request,
+    api_key: APIKey = Depends(get_api_key),
     redis: Redis = Depends(get_redis),
 ) -> None:
     rollbar.report_message("Ping", level="info", request=request)
@@ -82,7 +84,7 @@ async def health(
 
 
 @app.get(routes.HEADER_LIST, response_model=list[UUID])
-def header_list():
+def header_list(api_key: APIKey = Depends(get_api_key)):
     return [
         header.stem for header in constants.MEDIA_ROOT.glob("**/*") if header.is_file()
     ]
@@ -94,7 +96,9 @@ def header_list():
     response_model=Header,
 )
 async def header_create(
-    request: Request, uploaded_file: UploadFile = File(...)
+    request: Request,
+    api_key: APIKey = Depends(get_api_key),
+    uploaded_file: UploadFile = File(...),
 ) -> dict:
     async def get_opencv_img_from_buffer(buffer, flags):
         bytes_as_np_array = np.frombuffer(await buffer.read(), dtype=np.uint8)
@@ -136,7 +140,7 @@ async def header_create(
     responses={status.HTTP_404_NOT_FOUND: {"model": Message}},
     response_model=bytes,
 )
-def header_retrieve(identifier: UUID) -> bytes:
+def header_retrieve(identifier: UUID, api_key: APIKey = Depends(get_api_key)) -> bytes:
     try:
         with open(constants.MEDIA_ROOT / f"{identifier}.jpg", "rb") as img_file:
             return base64.b64encode(img_file.read())
@@ -152,6 +156,7 @@ async def mail_send(
     background_tasks: BackgroundTasks,
     review: Review,
     request: Request,
+    api_key: APIKey = Depends(get_api_key),
     settings: Settings = Depends(get_settings),
 ) -> None:
     background_tasks.add_task(mail.send, review, request, settings=settings)
@@ -161,6 +166,7 @@ async def mail_send(
     routes.FEED_LIST, response_model=list[Feed], response_model_exclude_defaults=False
 )
 async def feed_list(
+    api_key: APIKey = Depends(get_api_key),
     urls: list[HttpUrl] = Query(default=Required),
 ) -> list[dict]:
     rss = await fetch.rss(urls)
@@ -174,7 +180,7 @@ async def feed_list(
     routes.FEED_URLS,
     response_model=list[HttpUrl],
 )
-async def feed_urls() -> list[HttpUrl]:
+async def feed_urls(api_key: APIKey = Depends(get_api_key)) -> list[HttpUrl]:
     return FEED_URLS
 
 
@@ -183,6 +189,7 @@ async def feed_urls() -> list[HttpUrl]:
     response_model=list[News],
 )
 async def news_list(
+    api_key: APIKey = Depends(get_api_key),
     dt: date = date.today(),
     urls: list[HttpUrl] = Query(default=Required),
 ) -> list[dict]:
@@ -201,5 +208,5 @@ async def news_list(
     routes.NEWS_URLS,
     response_model=list[HttpUrl],
 )
-async def news_urls() -> list[HttpUrl]:
+async def news_urls(api_key: APIKey = Depends(get_api_key)) -> list[HttpUrl]:
     return NEWS_URLS

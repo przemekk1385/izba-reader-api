@@ -49,8 +49,9 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/project
-      - run: >-
-          tar czvf << parameters.build_file >> -C project/ . --exclude="__pycache__"
+      - run:
+          command: >-
+            tar czvf << parameters.build_file >> -C ~/project . --exclude="__pycache__"
           name: Compress build
       - run:
           command: >-

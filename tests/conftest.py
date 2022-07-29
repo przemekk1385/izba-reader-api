@@ -74,6 +74,7 @@ def settings_override(faker, mocker) -> Settings:
     email = faker.email()
     settings = Settings(
         api_key=faker.password(length=64),
+        origins=["http://test"],
         mail_from=email,
         mail_password=faker.password(),
         mail_port=faker.port_number(is_system=True),

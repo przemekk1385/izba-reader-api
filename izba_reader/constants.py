@@ -13,8 +13,3 @@ NEWS_URLS = [
     "http://www.cire.pl/artykuly/energetyka?p=1",
     "http://www.cire.pl/artykuly/energetyka?p=2",
 ]
-
-ORIGINS = [
-    "http://127.0.0.1:8080",
-    "http://localhost:8080",
-]

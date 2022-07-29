@@ -40,16 +40,6 @@ if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
 
 app = FastAPI()
-
-rollbar_add_to(app)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=constants.ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 app.mount(
     constants.MEDIA_URL,
     StaticFiles(directory=constants.MEDIA_ROOT),
@@ -57,12 +47,22 @@ app.mount(
 )
 app.openapi = custom_openapi
 
+rollbar_add_to(app)
+
 
 @app.on_event("startup")
 async def startup_event():
     settings = get_settings()
     rollbar.init(settings.rollbar_access_token, settings.environment)
     rollbar.events.add_payload_handler(ignore_handler)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 @app.get(

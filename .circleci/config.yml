@@ -42,18 +42,35 @@ jobs:
   deploy:
     docker:
       - image: arvindr226/alpine-ssh
+    parameters:
+      build_file:
+        type: string
+        default: $CIRCLE_PROJECT_REPONAME-$CIRCLE_SHA1.tar.gz
     steps:
       - attach_workspace:
           at: ~/project
       - run: >-
-          ssh
-          -oStrictHostKeyChecking=no
-          -v
-          $USER@$IP
-          "./deploy-docker.sh
-          $CIRCLE_PROJECT_REPONAME
-          master
-          $DOPPLER_TOKEN"
+          tar czvf << parameters.build_file >> -C project/ . --exclude="__pycache__"
+          name: Compress build
+      - run:
+          command: >-
+            scp
+            -oStrictHostKeyChecking=no
+            -v
+            << parameters.build_file >>
+            $USER@$IP:~/.
+          name: Copy build
+      - run:
+          command: >-
+            ssh
+            -oStrictHostKeyChecking=no
+            -v
+            $USER@$IP
+            "./deploy-docker.sh
+            $CIRCLE_PROJECT_REPONAME
+            << parameters.build_file >>
+            $DOPPLER_TOKEN"
+          name: Run remote deployment script
 
 workflows:
   digitalocean-deploy:

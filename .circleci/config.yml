@@ -29,11 +29,22 @@ jobs:
       - run:
           name: "Run pytest"
           command: poetry run pytest -s
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - izba_reader
+            - .dockerignore
+            - docker-compose.yml
+            - Dockerfile
+            - entrypoint.sh
+            - poetry.lock
+            - pyproject.toml
   deploy:
     docker:
       - image: arvindr226/alpine-ssh
     steps:
-      - checkout
+      - attach_workspace:
+          at: ~/project
       - run: >-
           ssh
           -oStrictHostKeyChecking=no

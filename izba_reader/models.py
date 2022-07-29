@@ -1,38 +1,32 @@
 from datetime import datetime
+from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, HttpUrl, validator
 
 
 class Feed(BaseModel):
     title: str
     description: str
-    link: str
+    url: HttpUrl
 
 
 class News(Feed):
     date: datetime
 
 
-class BaseServiceResponseModel(BaseModel):
-    time: datetime
-    count: int
+class Review(BaseModel):
+    recipient: EmailStr
+    articles: list[Feed | News]
+
+    @validator("articles", pre=True)
+    def select_model(cls, articles: list[dict]) -> list[Feed | News]:
+        return [News(**item) if item.get("date") else Feed(**item) for item in articles]
 
 
-class RssFeedsResponse(BaseServiceResponseModel):
-    items: list[Feed]
-
-
-class WebScrapersResponse(BaseServiceResponseModel):
-    items: list[News]
-
-
-class HeadersListResponse(BaseModel):
-    __root__: list[str]
-
-
-class MessageResponse(BaseModel):
+class Message(BaseModel):
     detail: str
 
 
-class UploadImageResponse(BaseModel):
-    filename: str
+class Header(BaseModel):
+    size: int
+    uuid: UUID

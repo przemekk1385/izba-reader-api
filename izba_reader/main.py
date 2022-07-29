@@ -1,5 +1,8 @@
+import base64
+import itertools
 import sys
-from uuid import uuid4
+from datetime import date
+from uuid import UUID, uuid4
 
 import cv2
 import numpy as np
@@ -12,40 +15,39 @@ from fastapi import (
     FastAPI,
     File,
     HTTPException,
+    Query,
     Request,
     UploadFile,
     status,
 )
-from pydantic import EmailStr
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.models import APIKey
+from fastapi.staticfiles import StaticFiles
+from pydantic import HttpUrl, Required
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
-from starlette.staticfiles import StaticFiles
 
 from izba_reader import constants, routes
-from izba_reader.dependencies import get_redis, get_settings
-from izba_reader.models import (
-    HeadersListResponse,
-    MessageResponse,
-    RssFeedsResponse,
-    UploadImageResponse,
-    WebScrapersResponse,
-)
+from izba_reader.constants import FEED_URLS, NEWS_URLS
+from izba_reader.dependencies import get_api_key, get_redis, get_settings
+from izba_reader.models import Feed, Header, Message, News, Review
+from izba_reader.openapi import custom_openapi
 from izba_reader.rollbar_handlers import ignore_handler
-from izba_reader.services.mail import send_message
+from izba_reader.services import fetch, mail
+from izba_reader.services.parser import get_parser
 from izba_reader.settings import Settings
-from izba_reader.tasks import get_from_html, get_from_rss
 
 if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
 
 app = FastAPI()
-
-rollbar_add_to(app)
-
 app.mount(
     constants.MEDIA_URL,
     StaticFiles(directory=constants.MEDIA_ROOT),
     name=constants.MEDIA_ROOT.name,
 )
+app.openapi = custom_openapi
+
+rollbar_add_to(app)
 
 
 @app.on_event("startup")
@@ -54,23 +56,23 @@ async def startup_event():
     rollbar.init(settings.rollbar_access_token, settings.environment)
     rollbar.events.add_payload_handler(ignore_handler)
 
-
-@app.get(routes.HEADERS, response_model=HeadersListResponse)
-def headers(request: Request):
-    return [
-        f"{str(request.base_url)[:-1]}{constants.MEDIA_URL}{header.name}"
-        for header in constants.MEDIA_ROOT.glob("**/*")
-        if header.is_file()
-    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 @app.get(
-    routes.HEALTH,
+    routes.HEALTH_LIST,
     responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": None}},
     response_model=None,
 )
 async def health(
     request: Request,
+    api_key: APIKey = Depends(get_api_key),
     redis: Redis = Depends(get_redis),
 ) -> None:
     rollbar.report_message("Ping", level="info", request=request)
@@ -83,40 +85,23 @@ async def health(
         rollbar.report_message("Pong", level="info", request=request)
 
 
-@app.get(routes.RSS_FEEDS, response_model=RssFeedsResponse)
-async def rss_feeds(
-    background_tasks: BackgroundTasks,
-    request: Request,
-    redis: Redis = Depends(get_redis),
-    settings: Settings = Depends(get_settings),
-) -> dict:
-    feeds = await get_from_rss(
-        background_tasks, request, redis=redis, settings=settings
-    )
-
-    return {**feeds, "count": len(feeds["items"])}
-
-
-@app.get(routes.WEB_SCRAPERS, response_model=WebScrapersResponse)
-async def web_scrapers(
-    background_tasks: BackgroundTasks,
-    request: Request,
-    redis: Redis = Depends(get_redis),
-    settings: Settings = Depends(get_settings),
-) -> dict:
-    news = await get_from_html(
-        background_tasks, request, redis=redis, settings=settings
-    )
-
-    return {**news, "count": len(news["items"])}
+@app.get(routes.HEADER_LIST, response_model=list[UUID])
+def header_list(api_key: APIKey = Depends(get_api_key)):
+    return [
+        header.stem for header in constants.MEDIA_ROOT.glob("**/*") if header.is_file()
+    ]
 
 
 @app.post(
-    routes.UPLOAD_IMAGE,
-    responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": MessageResponse}},
-    response_model=UploadImageResponse,
+    routes.HEADER_LIST,
+    responses={status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": Message}},
+    response_model=Header,
 )
-async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) -> dict:
+async def header_create(
+    request: Request,
+    api_key: APIKey = Depends(get_api_key),
+    uploaded_file: UploadFile = File(...),
+) -> dict:
     async def get_opencv_img_from_buffer(buffer, flags):
         bytes_as_np_array = np.frombuffer(await buffer.read(), dtype=np.uint8)
         return cv2.imdecode(bytes_as_np_array, flags)
@@ -128,9 +113,12 @@ async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) 
         )
 
     img = await get_opencv_img_from_buffer(uploaded_file, cv2.IMREAD_UNCHANGED)
-    aspect_ratio = img.shape[1] / img.shape[0]
+    aspect_ratio = (
+        round(img.shape[1] / (img.shape[1] - img.shape[0])),
+        round(img.shape[0] / (img.shape[1] - img.shape[0])),
+    )
 
-    if aspect_ratio != 4 / 3:
+    if aspect_ratio != (4, 3):
         raise HTTPException(
             status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="4:3 aspect ratio image required",
@@ -146,18 +134,81 @@ async def upload_image(request: Request, uploaded_file: UploadFile = File(...)) 
         "Image uploaded", level="info", extra_data={"name": path.name}, request=request
     )
 
-    return {"filename": f"{constants.MEDIA_URL}{path.name}"}
+    return {"size": img.size, "uuid": path.stem}
 
 
-@app.get(routes.SEND_MAIL, response_model=None, status_code=status.HTTP_202_ACCEPTED)
-async def send_mail(
+@app.get(
+    routes.HEADER_DETAIL,
+    responses={status.HTTP_404_NOT_FOUND: {"model": Message}},
+    response_model=bytes,
+)
+def header_retrieve(identifier: UUID, api_key: APIKey = Depends(get_api_key)) -> bytes:
+    try:
+        with open(constants.MEDIA_ROOT / f"{identifier}.jpg", "rb") as img_file:
+            return base64.b64encode(img_file.read())
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Header '{identifier}' not found",
+        ) from exc
+
+
+@app.post(routes.MAIL_SEND, response_model=None, status_code=status.HTTP_202_ACCEPTED)
+async def mail_send(
     background_tasks: BackgroundTasks,
-    email: EmailStr,
+    review: Review,
     request: Request,
-    redis: Redis = Depends(get_redis),
+    api_key: APIKey = Depends(get_api_key),
     settings: Settings = Depends(get_settings),
 ) -> None:
-    background_tasks.add_task(
-        send_message, background_tasks, email, request, redis=redis, settings=settings
+    background_tasks.add_task(mail.send, review, request, settings=settings)
+
+
+@app.get(
+    routes.FEED_LIST, response_model=list[Feed], response_model_exclude_defaults=False
+)
+async def feed_list(
+    api_key: APIKey = Depends(get_api_key),
+    urls: list[HttpUrl] = Query(default=Required),
+) -> list[dict]:
+    rss = await fetch.rss(urls)
+
+    return list(
+        itertools.chain(*[get_parser(url.host)(feed) for url, feed in rss.items()])
     )
-    # await send_message()
+
+
+@app.get(
+    routes.FEED_URLS,
+    response_model=list[HttpUrl],
+)
+async def feed_urls(api_key: APIKey = Depends(get_api_key)) -> list[HttpUrl]:
+    return FEED_URLS
+
+
+@app.get(
+    routes.NEWS_LIST,
+    response_model=list[News],
+)
+async def news_list(
+    api_key: APIKey = Depends(get_api_key),
+    dt: date = date.today(),
+    urls: list[HttpUrl] = Query(default=Required),
+) -> list[dict]:
+    html = await fetch.html(urls)
+
+    return [
+        entry
+        for entry in itertools.chain(
+            *[get_parser(url.host)(page) for url, page in html.items()]
+        )
+        if entry["date"].date() == dt
+    ]
+
+
+@app.get(
+    routes.NEWS_URLS,
+    response_model=list[HttpUrl],
+)
+async def news_urls(api_key: APIKey = Depends(get_api_key)) -> list[HttpUrl]:
+    return NEWS_URLS

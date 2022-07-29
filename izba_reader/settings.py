@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     ex: int = 8 * 60 * 60  # 8 hours
     redis_url: str = "redis://localhost:6379"
 
+    api_key: str
+    origins: list[str]
+
     mail_from: str
     mail_password: str
     mail_port: int

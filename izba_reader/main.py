@@ -40,14 +40,15 @@ if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
 
 app = FastAPI()
+
+rollbar_add_to(app)
+
 app.mount(
     constants.MEDIA_URL,
     StaticFiles(directory=constants.MEDIA_ROOT),
     name=constants.MEDIA_ROOT.name,
 )
 app.openapi = custom_openapi
-
-rollbar_add_to(app)
 
 
 @app.on_event("startup")

@@ -35,8 +35,14 @@ jobs:
     steps:
       - checkout
       - run: >-
-          ssh -oStrictHostKeyChecking=no -v $USER@$IP
-          "./deploy-docker.sh $CIRCLE_PROJECT_REPONAME master $DOPPLER_TOKEN"
+          ssh
+          -oStrictHostKeyChecking=no
+          -v
+          $USER@$IP
+          "./deploy-docker.sh
+          $CIRCLE_PROJECT_REPONAME
+          master
+          $DOPPLER_TOKEN"
 
 workflows:
   digitalocean-deploy:

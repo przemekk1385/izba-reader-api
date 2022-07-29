@@ -6,6 +6,7 @@ services:
     build:
       context: .
     environment:
+      - API_KEY
       - ENVIRONMENT
       - MAIL_FROM
       - MAIL_PASSWORD
@@ -13,6 +14,7 @@ services:
       - MAIL_SERVER
       - MAIL_SUBJECT
       - MAIL_USERNAME
+      - ORIGINS
       - REDIS_URL
       - ROLLBAR_ACCESS_TOKEN
     command: uvicorn --proxy-headers --host 0.0.0.0 --port 8000 izba_reader:main.app

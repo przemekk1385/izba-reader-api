@@ -2,6 +2,7 @@
 
 .circleci/
 .pytest-cache/
+browser/
 media/
 tests/
 

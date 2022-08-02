@@ -22,7 +22,6 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.models import APIKey
 from fastapi.staticfiles import StaticFiles
-from pydantic import parse_obj_as
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
 
 from izba_reader import constants, routes

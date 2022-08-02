@@ -1,8 +1,6 @@
-from datetime import datetime
-from typing import Iterable
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, HttpUrl, validator, root_validator
+from pydantic import BaseModel, EmailStr, HttpUrl
 
 
 class Article(BaseModel):

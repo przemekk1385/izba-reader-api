@@ -6,7 +6,6 @@ from uuid import UUID, uuid4
 
 import cv2
 import numpy as np
-import pydantic
 import rollbar
 from aioredis import Redis
 from aioredis.exceptions import ConnectionError

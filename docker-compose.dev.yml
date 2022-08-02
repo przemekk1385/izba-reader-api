@@ -1,5 +1,11 @@
 version: "3.9"
 services:
+  browser:
+    build:
+      context: browser
+    image: browser
+    ports:
+      - "3000:3000"
   redis:
     image: redis
     ports:

@@ -8,18 +8,9 @@ jobs:
     docker:
       - image: cimg/python:3.10.4
       - image: cimg/redis:6.2.6
+      - image: przemekk1385/browser:latest
     steps:
       - checkout
-      - setup_remote_docker
-      - run:
-          name: "Clone browser repository"
-          command: >-
-            mkdir -p browser
-            && cd browser
-            && git clone https://github.com/przemekk1385/browser.git .
-      - run:
-          name: "Build and run browser"
-          command: cd browser && make docker-build && make docker-run
       - run:
           name: "Install dependencies"
           command: poetry install
@@ -47,6 +38,12 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/project
+      - run:
+          name: "Clone browser repository"
+          command: >-
+            mkdir -p browser
+            && cd browser
+            && git clone https://github.com/przemekk1385/browser.git .
       - run:
           command: >-
             tar czvf << parameters.build_file >>

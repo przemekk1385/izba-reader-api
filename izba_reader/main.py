@@ -22,12 +22,13 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.models import APIKey
 from fastapi.staticfiles import StaticFiles
+from pydantic import parse_obj_as
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
 
 from izba_reader import constants, routes
 from izba_reader.constants import SITES
 from izba_reader.dependencies import get_api_key, get_redis, get_settings
-from izba_reader.models import Feed, Header, Message, News, Review
+from izba_reader.models import Header, Message, Review, Article
 from izba_reader.openapi import custom_openapi
 from izba_reader.rollbar_handlers import ignore_handler
 from izba_reader.services import fetch, mail
@@ -165,14 +166,14 @@ async def mail_send(
 
 @app.get(
     routes.ARTICLE_LIST,
-    response_model=list[Feed | News],
+    response_model=list[Article],
     response_model_exclude_defaults=False,
 )
 async def article_list(
     api_key: APIKey = Depends(get_api_key),
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
-) -> list[dict]:
+) -> list[Article]:
     articles = await fetch.get_sites(SITES, redis=redis, settings=settings)
     dt = date.today() - timedelta(days=1)
 

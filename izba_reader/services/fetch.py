@@ -25,7 +25,7 @@ def fetch_cached(
         redis: Redis = Depends(get_redis),
         settings: Settings = Depends(get_settings),
     ) -> dict[HttpUrl, str]:
-        cached_results = {s.url: await redis.get(str(s.url)) for s in sites}
+        cached_results = {site.url: await redis.get(str(site.url)) for site in sites}
 
         if all(cached_results.values()):
             return cached_results
@@ -101,4 +101,4 @@ async def get_sites(
             ]
         )
 
-    return {s["url"]: s["content"] for s in ret}
+    return {site["url"]: site["content"] for site in ret}

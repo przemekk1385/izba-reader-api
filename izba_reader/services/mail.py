@@ -3,34 +3,17 @@ from functools import singledispatch
 import rollbar
 from fastapi import Depends, Request
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
-from pydantic import BaseModel
 
 from izba_reader.decorators import async_report_exceptions
 from izba_reader.dependencies import get_settings
-from izba_reader.models import Feed, News, Review
+from izba_reader.models import Article, Review
 from izba_reader.settings import Settings
 
 
-def _make_text_message(articles: list[Feed | News]) -> str:
+def _make_text_message(articles: list[Article]) -> str:
     @singledispatch
-    def format_article(article: BaseModel) -> str:
-        pass
-
-    @format_article.register
-    def format_feed(article: Feed) -> str:
-        return (
-            "#feed\n" f"{article.title}\n" f"{article.description}\n" f"{article.url}"
-        )
-
-    @format_article.register
-    def format_news(article: News) -> str:
-        return (
-            "#web\n"
-            f"{article.date}\n"
-            f"{article.title}\n"
-            f"{article.description}\n"
-            f"{article.url}"
-        )
+    def format_article(article: Article) -> str:
+        return f"{article.title}\n{article.description}\n{article.url}"
 
     return "\n\n".join(format_article(article) for article in articles)
 

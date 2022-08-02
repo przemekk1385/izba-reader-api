@@ -11,6 +11,7 @@ services:
       context: .
     environment:
       - API_KEY
+      - BROWSER_URL
       - ENVIRONMENT
       - MAIL_FROM
       - MAIL_PASSWORD

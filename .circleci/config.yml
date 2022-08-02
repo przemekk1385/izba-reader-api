@@ -10,19 +10,16 @@ jobs:
       - image: cimg/redis:6.2.6
     steps:
       - checkout
+      - setup_remote_docker
       - run:
-          name: "Install Chrome-required libraries"
-          command: |
-            sudo apt-get update &&
-            sudo apt-get install -y \
-              libxcursor1 \
-              libxdamage1 \
-              libcups2 \
-              libasound2 \
-              libpangocairo-1.0-0 \
-              libatk1.0-0 \
-              libatk-bridge2.0-0 \
-              libgtk-3-0
+          name: "Clone browser repository"
+          command: >-
+            mkdir -p browser
+            && cd browser
+            && git clone https://github.com/przemekk1385/browser.git .
+      - run:
+          name: "Build and run browser"
+          command: cd browser && make docker-build && make docker-run
       - run:
           name: "Install dependencies"
           command: poetry install
@@ -32,6 +29,7 @@ jobs:
       - persist_to_workspace:
           root: ~/project
           paths:
+            - browser
             - izba_reader
             - .dockerignore
             - docker-compose.yml
@@ -51,7 +49,10 @@ jobs:
           at: ~/project
       - run:
           command: >-
-            tar czvf << parameters.build_file >> -C ~/project . --exclude="__pycache__"
+            tar czvf << parameters.build_file >>
+            -C ~/project .
+            --exclude="__pycache__"
+            --exclude=".git"
           name: Compress build
       - run:
           command: >-

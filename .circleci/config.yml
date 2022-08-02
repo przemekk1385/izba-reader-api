@@ -8,7 +8,7 @@ jobs:
     docker:
       - image: cimg/python:3.10.4
       - image: cimg/redis:6.2.6
-      - image: przemekk1385/browser:latest-amd64
+      - image: przemekk1385/browser:latest
     steps:
       - checkout
       - run:
@@ -36,7 +36,7 @@ jobs:
             - pyproject.toml
   deploy:
     docker:
-      - image: arvindr226/alpine-ssh
+      - image: arvindr226/alpine-ssh:latest
     parameters:
       build_file:
         type: string

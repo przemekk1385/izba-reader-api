@@ -1,15 +1,30 @@
 from pathlib import Path
 
+from pydantic import BaseModel, HttpUrl
+
+
+class Site(BaseModel):
+    url: HttpUrl
+    use_browser: bool
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
 
-FEED_URLS = [
-    "https://biznesalert.pl/category/energetyka/feed/",
-    "http://www.wnp.pl/rss/serwis_rss_1.xml/",
-]
-NEWS_URLS = [
-    "http://www.cire.pl/artykuly/energetyka?p=1",
-    "http://www.cire.pl/artykuly/energetyka?p=2",
+SITES = [
+    Site(url="https://biznesalert.pl/category/energetyka/feed/", use_browser=False),
+    Site(
+        url="http://www.wnp.pl/rss/serwis_rss_1.xml/",
+        use_browser=False,
+    ),
+    Site(
+        url="http://www.cire.pl/artykuly/energetyka?p=1",
+        use_browser=True,
+    ),
+    Site(
+        url="http://www.cire.pl/artykuly/energetyka?p=2",
+        use_browser=True,
+    ),
 ]

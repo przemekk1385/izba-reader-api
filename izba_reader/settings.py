@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic import AnyUrl, BaseSettings
 
 
 class Settings(BaseSettings):
@@ -7,10 +7,11 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
 
     ex: int = 8 * 60 * 60  # 8 hours
-    redis_url: str = "redis://localhost:6379"
+    browser_url: AnyUrl = "http://localhost:3000"
+    redis_url: AnyUrl = "redis://localhost:6379"
 
     api_key: str
-    origins: list[str]
+    origins: list[AnyUrl]
 
     mail_from: str
     mail_password: str

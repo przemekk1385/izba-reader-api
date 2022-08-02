@@ -7,10 +7,10 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M"
 
 
 def cire_pl(page: str) -> list[dict]:
-    soup = BeautifulSoup(page, features="html.parser")
+    soup = BeautifulSoup(page, features="lxml")
 
     hrefs = {
-        tag["href"]
+        tag.attrs.get("href")
         for tag in soup.findAll(
             "a",
             href=lambda x: x and x.startswith("/artykuly/serwis-informacyjny-cire-24/"),
@@ -51,7 +51,7 @@ def cire_pl(page: str) -> list[dict]:
 
 
 def biznesalert_pl(feed: str) -> list[dict]:
-    soup = BeautifulSoup(feed, features="html.parser")
+    soup = BeautifulSoup(feed, features="xml")
 
     return [
         {
@@ -59,20 +59,20 @@ def biznesalert_pl(feed: str) -> list[dict]:
             "description": BeautifulSoup(item.find("description").text)
             .findAll("p")[0]
             .text,
-            "url": item.link.next_sibling.strip(),
+            "url": item.link.text,
         }
         for item in soup.findAll("item")
     ]
 
 
 def wnp_pl(feed: str) -> list[dict]:
-    soup = BeautifulSoup(feed, features="html.parser")
+    soup = BeautifulSoup(feed, features="xml")
 
     return [
         {
             "title": item.find("title").text,
             "description": item.find("description").text,
-            "url": item.link.next_sibling.strip(),
+            "url": item.link.text,
         }
         for item in soup.findAll("item")
     ]

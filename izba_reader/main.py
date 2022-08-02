@@ -1,7 +1,7 @@
 import base64
 import itertools
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta
 from uuid import UUID, uuid4
 
 import cv2
@@ -15,7 +15,6 @@ from fastapi import (
     FastAPI,
     File,
     HTTPException,
-    Query,
     Request,
     UploadFile,
     status,
@@ -23,13 +22,12 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.models import APIKey
 from fastapi.staticfiles import StaticFiles
-from pydantic import HttpUrl, Required
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
 
 from izba_reader import constants, routes
-from izba_reader.constants import FEED_URLS, NEWS_URLS
+from izba_reader.constants import SITES
 from izba_reader.dependencies import get_api_key, get_redis, get_settings
-from izba_reader.models import Feed, Header, Message, News, Review
+from izba_reader.models import Article, Header, Message, Review
 from izba_reader.openapi import custom_openapi
 from izba_reader.rollbar_handlers import ignore_handler
 from izba_reader.services import fetch, mail
@@ -40,14 +38,15 @@ if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
 
 app = FastAPI()
+
+rollbar_add_to(app)
+
 app.mount(
     constants.MEDIA_URL,
     StaticFiles(directory=constants.MEDIA_ROOT),
     name=constants.MEDIA_ROOT.name,
 )
 app.openapi = custom_openapi
-
-rollbar_add_to(app)
 
 
 @app.on_event("startup")
@@ -165,50 +164,22 @@ async def mail_send(
 
 
 @app.get(
-    routes.FEED_LIST, response_model=list[Feed], response_model_exclude_defaults=False
+    routes.ARTICLE_LIST,
+    response_model=list[Article],
+    response_model_exclude_defaults=False,
 )
-async def feed_list(
+async def article_list(
     api_key: APIKey = Depends(get_api_key),
-    urls: list[HttpUrl] = Query(default=Required),
-) -> list[dict]:
-    rss = await fetch.rss(urls)
-
-    return list(
-        itertools.chain(*[get_parser(url.host)(feed) for url, feed in rss.items()])
-    )
-
-
-@app.get(
-    routes.FEED_URLS,
-    response_model=list[HttpUrl],
-)
-async def feed_urls(api_key: APIKey = Depends(get_api_key)) -> list[HttpUrl]:
-    return FEED_URLS
-
-
-@app.get(
-    routes.NEWS_LIST,
-    response_model=list[News],
-)
-async def news_list(
-    api_key: APIKey = Depends(get_api_key),
-    dt: date = date.today(),
-    urls: list[HttpUrl] = Query(default=Required),
-) -> list[dict]:
-    html = await fetch.html(urls)
+    redis: Redis = Depends(get_redis),
+    settings: Settings = Depends(get_settings),
+) -> list[Article]:
+    articles = await fetch.get_sites(SITES, redis=redis, settings=settings)
+    dt = date.today() - timedelta(days=1)
 
     return [
-        entry
-        for entry in itertools.chain(
-            *[get_parser(url.host)(page) for url, page in html.items()]
+        article
+        for article in itertools.chain(
+            *[get_parser(url.host)(feed) for url, feed in articles.items()]
         )
-        if entry["date"].date() == dt
+        if article.get("date", datetime.now()).date() >= dt
     ]
-
-
-@app.get(
-    routes.NEWS_URLS,
-    response_model=list[HttpUrl],
-)
-async def news_urls(api_key: APIKey = Depends(get_api_key)) -> list[HttpUrl]:
-    return NEWS_URLS

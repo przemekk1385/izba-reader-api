@@ -8,41 +8,77 @@ jobs:
     docker:
       - image: cimg/python:3.10.4
       - image: cimg/redis:6.2.6
+      - image: przemekk1385/browser:latest
     steps:
       - checkout
       - run:
-          name: "Install Chrome-required libraries"
-          command: |
-            sudo apt-get update &&
-            sudo apt-get install -y \
-              libxcursor1 \
-              libxdamage1 \
-              libcups2 \
-              libasound2 \
-              libpangocairo-1.0-0 \
-              libatk1.0-0 \
-              libatk-bridge2.0-0 \
-              libgtk-3-0
+          name: "Clone browser repository"
+          command: >-
+            mkdir -p browser
+            && cd browser
+            && git clone https://github.com/przemekk1385/browser.git .
       - run:
-          name: "Install poetry"
+          name: "Install dependencies"
           command: poetry install
+      - run:
+          name: "Run black"
+          command: poetry run black . --check
+      - run:
+          name: "Run isort"
+          command: poetry run isort . --check
+      - run:
+          name: "Run flake8"
+          command: poetry run flake8 .
       - run:
           name: "Run pytest"
           command: poetry run pytest -s
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - browser
+            - izba_reader
+            - .dockerignore
+            - docker-compose.yml
+            - Dockerfile
+            - entrypoint.sh
+            - poetry.lock
+            - pyproject.toml
   deploy:
     docker:
-      - image: arvindr226/alpine-ssh
+      - image: arvindr226/alpine-ssh:latest
+    parameters:
+      build_file:
+        type: string
+        default: $CIRCLE_PROJECT_REPONAME-$CIRCLE_SHA1.tar.gz
     steps:
-      - checkout
-      - run: >-
-          ssh
-          -oStrictHostKeyChecking=no
-          -v
-          $USER@$IP
-          "./deploy-docker.sh
-          $CIRCLE_PROJECT_REPONAME
-          master
-          $DOPPLER_TOKEN"
+      - attach_workspace:
+          at: ~/project
+      - run:
+          command: >-
+            tar czvf << parameters.build_file >>
+            -C ~/project .
+            --exclude="__pycache__"
+            --exclude=".git"
+          name: Compress build
+      - run:
+          command: >-
+            scp
+            -oStrictHostKeyChecking=no
+            -v
+            << parameters.build_file >>
+            $USER@$IP:~/.
+          name: Copy build
+      - run:
+          command: >-
+            ssh
+            -oStrictHostKeyChecking=no
+            -v
+            $USER@$IP
+            "./deploy-docker.sh
+            $CIRCLE_PROJECT_REPONAME
+            << parameters.build_file >>
+            $DOPPLER_TOKEN"
+          name: Run remote deployment script
 
 workflows:
   digitalocean-deploy:

@@ -24,10 +24,12 @@ from fastapi.openapi.models import APIKey
 from fastapi.staticfiles import StaticFiles
 from rollbar.contrib.fastapi import add_to as rollbar_add_to
 
+import pydantic
+
 from izba_reader import constants, routes
 from izba_reader.constants import SITES
 from izba_reader.dependencies import get_api_key, get_redis, get_settings
-from izba_reader.models import Header, Message, Review, Article
+from izba_reader.models import Article, Header, Message, Review
 from izba_reader.openapi import custom_openapi
 from izba_reader.rollbar_handlers import ignore_handler
 from izba_reader.services import fetch, mail

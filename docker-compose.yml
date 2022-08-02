@@ -24,7 +24,7 @@ services:
       - ROLLBAR_ACCESS_TOKEN
     command: uvicorn --proxy-headers --host 0.0.0.0 --port 8000 izba_reader:main.app
     depends_on:
-      - puppeteer
+      - browser
       - redis
     ports:
       - "1304:8000"

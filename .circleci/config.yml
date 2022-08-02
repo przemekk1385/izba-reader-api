@@ -8,7 +8,7 @@ jobs:
     docker:
       - image: cimg/python:3.10.4
       - image: cimg/redis:6.2.6
-      - image: przemekk1385/browser:latest
+      - image: przemekk1385/browser:latest-amd64
     steps:
       - checkout
       - run:

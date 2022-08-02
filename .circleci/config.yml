@@ -12,6 +12,12 @@ jobs:
     steps:
       - checkout
       - run:
+          name: "Clone browser repository"
+          command: >-
+            mkdir -p browser
+            && cd browser
+            && git clone https://github.com/przemekk1385/browser.git .
+      - run:
           name: "Install dependencies"
           command: poetry install
       - run:
@@ -38,12 +44,6 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/project
-      - run:
-          name: "Clone browser repository"
-          command: >-
-            mkdir -p browser
-            && cd browser
-            && git clone https://github.com/przemekk1385/browser.git .
       - run:
           command: >-
             tar czvf << parameters.build_file >>

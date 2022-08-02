@@ -24,7 +24,7 @@ jobs:
               libatk-bridge2.0-0 \
               libgtk-3-0
       - run:
-          name: "Install poetry"
+          name: "Install dependencies"
           command: poetry install
       - run:
           name: "Run pytest"

@@ -22,10 +22,10 @@ jobs:
           command: poetry install
       - run:
           name: "Run black"
-          command: poetry run black .
+          command: poetry run black . --check
       - run:
           name: "Run isort"
-          command: poetry run isort .
+          command: poetry run isort . --check
       - run:
           name: "Run flake8"
           command: poetry run flake8 .

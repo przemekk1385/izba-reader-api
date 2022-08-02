@@ -21,6 +21,15 @@ jobs:
           name: "Install dependencies"
           command: poetry install
       - run:
+          name: "Run black"
+          command: poetry run black .
+      - run:
+          name: "Run isort"
+          command: poetry run isort .
+      - run:
+          name: "Run flake8"
+          command: poetry run flake8 .
+      - run:
           name: "Run pytest"
           command: poetry run pytest -s
       - persist_to_workspace:

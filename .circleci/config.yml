@@ -64,10 +64,6 @@ workflows:
   digitalocean-deploy:
     jobs:
       - build-and-test
-      - hold-for-deploy-prd:
-          type: approval
-          requires:
-           - build-and-test
       - deploy-stg:
           requires:
             - build-and-test
@@ -76,4 +72,7 @@ workflows:
               only: master
       - deploy-prd:
           requires:
-            - hold-for-deploy-prd
+            - build-and-test
+          filters:
+            branches:
+              only: /^release\/v[0-9]+(\.[0-9]+)*$/

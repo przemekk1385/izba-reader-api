@@ -42,10 +42,11 @@ Below articles that might be handy:
 ```
 #!/bin/bash
 
-( cd "$1" && doppler run -t "$3" -- docker-compose down && cd .. && rm -rf "$1" )
-mkdir "$1"
-tar xvf "$2" -C "$1"
-( cd "$1" && doppler run -t "$3" -- docker-compose up --build -d )
+cd "$1"
+git pull
+doppler run -t "$2" -- docker-compose down
+doppler run -t "$2" -- docker-compose up --build -d
+
 ```
 
 ## Project settings

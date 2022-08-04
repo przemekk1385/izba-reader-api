@@ -3,6 +3,28 @@ version: 2.1
 orbs:
   python: circleci/python@1.5.0
 
+commands:
+  deploy:
+    parameters:
+      target_dir:
+        type: string
+        default: $CIRCLE_PROJECT_REPONAME
+      token:
+        type: string
+    steps:
+      - attach_workspace:
+          at: ~/project
+      - run:
+          command: >-
+            ssh
+            -oStrictHostKeyChecking=no
+            -v
+            $USER@$IP
+            "./deploy-docker.sh
+            << parameters.target_dir >>
+            << parameters.token >>"
+          name: Run remote deployment script
+
 jobs:
   build:
     docker:
@@ -43,50 +65,33 @@ jobs:
             - entrypoint.sh
             - poetry.lock
             - pyproject.toml
-  deploy:
+  deploy-stg:
     docker:
       - image: arvindr226/alpine-ssh:latest
-    parameters:
-      build_file:
-        type: string
-        default: $CIRCLE_PROJECT_REPONAME-$CIRCLE_SHA1.tar.gz
     steps:
-      - attach_workspace:
-          at: ~/project
-      - run:
-          command: >-
-            tar czvf << parameters.build_file >>
-            -C ~/project .
-            --exclude="__pycache__"
-            --exclude=".git"
-          name: Compress build
-      - run:
-          command: >-
-            scp
-            -oStrictHostKeyChecking=no
-            -v
-            << parameters.build_file >>
-            $USER@$IP:~/.
-          name: Copy build
-      - run:
-          command: >-
-            ssh
-            -oStrictHostKeyChecking=no
-            -v
-            $USER@$IP
-            "./deploy-docker.sh
-            $CIRCLE_PROJECT_REPONAME
-            << parameters.build_file >>
-            $DOPPLER_TOKEN"
-          name: Run remote deployment script
+      - deploy:
+          target_dir: $CIRCLE_PROJECT_REPONAME-stg
+          token: $DOPPLER_TOKEN_STG
+  deploy-prd:
+    docker:
+      - image: arvindr226/alpine-ssh:latest
+    steps:
+      - deploy:
+          token: $DOPPLER_TOKEN_PRD
 
 workflows:
   digitalocean-deploy:
     jobs:
       - build
-      - deploy:
+      - deploy-stg:
           requires:
             - build
           filters:
             branches:
               only: master
+      - deploy-prd:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/

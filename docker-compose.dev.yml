@@ -1,9 +1,7 @@
 version: "3.9"
 services:
   browser:
-    build:
-      context: browser
-    image: browser
+    image: przemekk1385/browser:latest
     ports:
       - "3000:3000"
   redis:

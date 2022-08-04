@@ -1,9 +1,7 @@
 version: "3.9"
 services:
   browser:
-    build:
-      context: browser
-    image: browser
+    image: przemekk1385/browser:latest
   redis:
     image: redis
   app:

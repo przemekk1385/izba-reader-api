@@ -1,6 +1,5 @@
-.git/
-
 .circleci/
+.git/
 .pytest-cache/
 browser/
 media/

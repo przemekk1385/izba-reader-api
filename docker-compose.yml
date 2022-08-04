@@ -11,6 +11,7 @@ services:
       context: .
     environment:
       - API_KEY
+      - APP_PORT
       - BROWSER_URL
       - ENVIRONMENT
       - MAIL_FROM
@@ -27,4 +28,4 @@ services:
       - browser
       - redis
     ports:
-      - "1304:8000"
+      - "${APP_PORT}:8000"

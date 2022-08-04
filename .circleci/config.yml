@@ -67,10 +67,10 @@ workflows:
       - hold-for-deploy-prd:
           type: approval
           requires:
-           - build
+           - build-and-test
       - deploy-stg:
           requires:
-            - build
+            - build-and-test
           filters:
             branches:
               only: master

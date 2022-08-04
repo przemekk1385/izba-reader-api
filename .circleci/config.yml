@@ -12,8 +12,6 @@ commands:
       token:
         type: string
     steps:
-      - attach_workspace:
-          at: ~/project
       - run:
           command: >-
             ssh
@@ -26,19 +24,13 @@ commands:
           name: Run remote deployment script
 
 jobs:
-  build:
+  build-and-test:
     docker:
       - image: cimg/python:3.10.4
       - image: cimg/redis:6.2.6
       - image: przemekk1385/browser:latest
     steps:
       - checkout
-      - run:
-          name: "Clone browser repository"
-          command: >-
-            mkdir -p browser
-            && cd browser
-            && git clone https://github.com/przemekk1385/browser.git .
       - run:
           name: "Install dependencies"
           command: poetry install
@@ -54,17 +46,6 @@ jobs:
       - run:
           name: "Run pytest"
           command: poetry run pytest -s
-      - persist_to_workspace:
-          root: ~/project
-          paths:
-            - browser
-            - izba_reader
-            - .dockerignore
-            - docker-compose.yml
-            - Dockerfile
-            - entrypoint.sh
-            - poetry.lock
-            - pyproject.toml
   deploy-stg:
     docker:
       - image: arvindr226/alpine-ssh:latest
@@ -82,8 +63,8 @@ jobs:
 workflows:
   digitalocean-deploy:
     jobs:
-      - build
-      - hold:
+      - build-and-test
+      - hold-for-deploy-prd:
           type: approval
           requires:
            - build
@@ -95,4 +76,4 @@ workflows:
               only: master
       - deploy-prd:
           requires:
-            - hold
+            - hold-for-deploy-prd

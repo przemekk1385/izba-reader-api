@@ -1,6 +1,6 @@
 FROM python:3.10.4-bullseye
 
-RUN apt-get update && apt-get install -y libgl1 netcat
+RUN apt-get update && apt-get install -y netcat
 
 RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
 ENV PATH="${PATH}:/root/.poetry/bin"

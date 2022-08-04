@@ -43,8 +43,8 @@ Below articles that might be handy:
 #!/bin/bash
 
 cd "$1"
-git pull
 doppler run -t "$2" -- docker-compose down
+git pull
 doppler run -t "$2" -- docker-compose up --build -d
 
 ```

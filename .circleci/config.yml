@@ -3,26 +3,6 @@ version: 2.1
 orbs:
   python: circleci/python@1.5.0
 
-commands:
-  deploy:
-    parameters:
-      target_dir:
-        type: string
-        default: $CIRCLE_PROJECT_REPONAME
-      token:
-        type: string
-    steps:
-      - run:
-          command: >-
-            ssh
-            -oStrictHostKeyChecking=no
-            -v
-            $USER@$IP
-            "./deploy-docker.sh
-            << parameters.target_dir >>
-            << parameters.token >>"
-          name: Run remote deployment script
-
 jobs:
   build-and-test:
     docker:
@@ -46,33 +26,45 @@ jobs:
       - run:
           name: "Run pytest"
           command: poetry run pytest -s
-  deploy-stg:
+  deploy:
     docker:
       - image: arvindr226/alpine-ssh:latest
+    parameters:
+      app_dirname:
+        type: string
+        default: $CIRCLE_PROJECT_REPONAME
+      token:
+        type: string
+        default: $DOPPLER_TOKEN_PRD
     steps:
-      - deploy:
-          target_dir: $CIRCLE_PROJECT_REPONAME-stg
-          token: $DOPPLER_TOKEN_STG
-  deploy-prd:
-    docker:
-      - image: arvindr226/alpine-ssh:latest
-    steps:
-      - deploy:
-          token: $DOPPLER_TOKEN_PRD
+      - run:
+          command: >-
+            ssh
+            -oStrictHostKeyChecking=no
+            -v
+            $USER@$IP
+            "./deploy-docker.sh
+            << parameters.app_dirname >>
+            << parameters.token >>"
+          name: Run remote deployment script
 
 workflows:
   digitalocean-deploy:
     jobs:
       - build-and-test
-      - deploy-stg:
+      - deploy:
+          name: deploy-prd
           requires:
             - build-and-test
           filters:
             branches:
               only: master
-      - deploy-prd:
+      - deploy:
+          name: deploy-stg
           requires:
             - build-and-test
           filters:
             branches:
               only: /^release\/v[0-9]+(\.[0-9]+)*$/
+          app_dirname: $CIRCLE_PROJECT_REPONAME-stg
+          token: $DOPPLER_TOKEN_STG

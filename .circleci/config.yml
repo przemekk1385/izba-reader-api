@@ -58,13 +58,13 @@ workflows:
             - build-and-test
           filters:
             branches:
-              only: master
+              only: /^release\/v[0-9]+(\.[0-9]+)*$/
       - deploy:
           name: deploy-stg
           requires:
             - build-and-test
           filters:
             branches:
-              only: /^release\/v[0-9]+(\.[0-9]+)*$/
+              only: master
           app_dirname: $CIRCLE_PROJECT_REPONAME-stg
           token: $DOPPLER_TOKEN_STG

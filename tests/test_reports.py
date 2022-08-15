@@ -1,16 +1,15 @@
 import pytest
 from fastapi import status
+from fastapi_mail import FastMail
 
 from izba_reader import routes
 
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("settings_override")
-async def test_send_message(async_client, faker, mocked_rollbar, mocker):
-    mocker.patch(
-        "izba_reader.services.mail._make_text_message",
-        side_effect=Exception(faker.sentence()),
-    )
+async def test_send_mail(async_client, faker, mocked_rollbar, mocker):
+    mocked_send_message = mocker.patch.object(FastMail, "send_message")
+    mocked_send_message.side_effect = Exception(faker.sentence())
 
     with pytest.raises(Exception):
         response = await async_client.get(

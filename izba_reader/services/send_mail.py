@@ -1,3 +1,5 @@
+import asyncio
+
 import rollbar
 from fastapi import Depends, Request
 from fastapi.logger import logger
@@ -86,12 +88,19 @@ async def as_text(
 
 
 async def dispatch(
-    template: str | None,
+    templates: list[str] | None,
     review: Review,
     request: Request,
     settings: Settings = Depends(get_settings),
 ):
-    if template is None:
+    if not templates:
         await as_text(review, request, settings=settings)
     else:
-        await from_template(template, review, request, settings=settings)
+        await asyncio.gather(
+            *[
+                asyncio.ensure_future(
+                    from_template(template, review, request, settings=settings)
+                )
+                for template in templates
+            ],
+        )

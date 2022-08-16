@@ -26,5 +26,4 @@ services:
     depends_on:
       - browser
       - redis
-    ports:
-      - "${APP_PORT}:8000"
+    ports: ["${APP_PORT}:8000"]

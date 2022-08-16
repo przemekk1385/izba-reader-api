@@ -16,6 +16,5 @@ tests/
 docker-compose*.yml
 Dockerfile
 doppler.yaml
-logging.yaml
 Makefile
 pytest.ini

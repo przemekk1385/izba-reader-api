@@ -21,3 +21,4 @@ class Header(BaseModel):
 class Review(BaseModel):
     recipient: EmailStr
     articles: list[Article]
+    templates: list[str] = (None,)

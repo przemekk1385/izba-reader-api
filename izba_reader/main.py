@@ -159,10 +159,9 @@ async def mail_send(
     request: Request,
     api_key: APIKey = Depends(get_api_key),
     settings: Settings = Depends(get_settings),
-    template: str | None = None,
 ) -> None:
     background_tasks.add_task(
-        send_mail.dispatch, template, review, request, settings=settings
+        send_mail.dispatch, review.templates, review, request, settings=settings
     )
 
 

@@ -21,7 +21,8 @@ services:
       - ORIGINS
       - REDIS_URL
       - ROLLBAR_ACCESS_TOKEN
-    command: uvicorn --proxy-headers --host 0.0.0.0 --port 8000 izba_reader:main.app
+    command: >-
+      gunicorn -k izba_reader.workers.UvicornWorker -b 0.0.0.0:8000 izba_reader.main:app
     depends_on:
       - browser
       - redis

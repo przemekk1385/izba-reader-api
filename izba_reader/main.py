@@ -30,7 +30,7 @@ from izba_reader.dependencies import get_api_key, get_redis, get_settings
 from izba_reader.models import Article, Header, Message, Review
 from izba_reader.openapi import custom_openapi
 from izba_reader.rollbar_handlers import ignore_handler
-from izba_reader.services import fetch, mail
+from izba_reader.services import fetch, send_mail
 from izba_reader.services.parser import get_parser
 from izba_reader.settings import Settings
 
@@ -160,7 +160,9 @@ async def mail_send(
     api_key: APIKey = Depends(get_api_key),
     settings: Settings = Depends(get_settings),
 ) -> None:
-    background_tasks.add_task(mail.send, review, request, settings=settings)
+    background_tasks.add_task(
+        send_mail.dispatch, review.templates, review, request, settings=settings
+    )
 
 
 @app.get(

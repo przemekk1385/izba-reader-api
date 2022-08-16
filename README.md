@@ -12,6 +12,7 @@ All variables that do not have a default value must be set to get the app up and
 | Name                 | Description                        | Default                 |
 |----------------------|------------------------------------|-------------------------|
 | API_KEY              | API key                            |                         |
+| APP_PORT             | port the app runs on               |                         |
 | BROWSER_URL          | browser service URL                | http://localhost:3000   |
 | ENVIRONMENT          | environment name                   | production              |
 | EX                   | cache expiration time              | 28800 seconds (8 hours) |
@@ -23,6 +24,9 @@ All variables that do not have a default value must be set to get the app up and
 | MAIL_USERNAME        | email username                     |
 | REDIS_URL            | Redis URL                          | redis://localhost:6379  |
 | ROLLBAR_ACCESS_TOKEN | Rollbar **post_server_item** token |
+
+`APP_PORT` variable is not used inside app but is required to properly set port of Docker
+service.
 
 # CircleCI pipeline
 

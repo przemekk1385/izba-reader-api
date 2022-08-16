@@ -40,7 +40,9 @@ def cire_pl(page: str) -> list[dict]:
         ret.append(
             {
                 "title": title,
-                "description": description,
+                "description": description
+                if description.endswith(".")
+                else f"{description} […]",
                 "url": f"https://www.cire.pl{tag['href']}",
                 "date": dt,
             }

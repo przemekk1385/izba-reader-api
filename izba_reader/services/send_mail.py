@@ -39,7 +39,7 @@ async def from_template(
 
     if settings.environment != "development":
         message = MessageSchema(
-            subject="Fastapi-Mail module",
+            subject=settings.mail_subject,
             recipients=[review.recipient],
             template_body=review.articles,
         )

@@ -8,7 +8,7 @@ def custom_openapi():
         return app.openapi_schema
     openapi_schema = get_openapi(
         title="izba-reader API",
-        version="0.2.0",
+        version="0.2.1",
         routes=app.routes,
     )
     app.openapi_schema = openapi_schema

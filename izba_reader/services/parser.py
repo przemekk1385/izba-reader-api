@@ -3,8 +3,6 @@ from typing import Callable
 
 from bs4 import BeautifulSoup
 
-DATETIME_FORMAT = "%Y-%m-%d %H:%M"
-
 
 def cire_pl(page: str) -> list[dict]:
     soup = BeautifulSoup(page, features="lxml")
@@ -23,10 +21,12 @@ def cire_pl(page: str) -> list[dict]:
 
         next_sibling = tag.next_sibling()
 
+        dt_format = "%Y-%m-%d %H:%M"
+
         try:
-            dt = datetime.strptime(next_sibling[1].text, DATETIME_FORMAT)
+            dt = datetime.strptime(next_sibling[1].text, dt_format)
         except ValueError:
-            dt = datetime.strptime(next_sibling[2].text, DATETIME_FORMAT)
+            dt = datetime.strptime(next_sibling[2].text, dt_format)
             title = next_sibling[3].text
             description = "\n".join(
                 next_sibling[i].text for i in range(4, len(next_sibling) - 1)
@@ -78,9 +78,27 @@ def wnp_pl(feed: str) -> list[dict]:
     ]
 
 
+def businessinsider_com_pl(page: str) -> list[dict]:
+    soup = BeautifulSoup(page, features="lxml")
+
+    return [
+        {
+            "title": tag.find("h2").text.strip(),
+            "description": tag.select_one("p.item_lead").text.strip(),
+            "url": tag.attrs["href"],
+            "date": datetime.strptime(
+                tag.select_one("time.item_time").attrs["datetime"],
+                "%Y-%m-%dT%H:%M:%S.%fZ",
+            ),
+        }
+        for tag in soup.select("div.stream-list > a")
+    ]
+
+
 def get_parser(host: str) -> Callable[[str], list[dict]]:
     return {
         "www.cire.pl": cire_pl,
         "biznesalert.pl": biznesalert_pl,
         "www.wnp.pl": wnp_pl,
+        "businessinsider.com.pl": businessinsider_com_pl,
     }.get(host, lambda _: list())

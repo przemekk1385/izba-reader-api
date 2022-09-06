@@ -27,4 +27,20 @@ SITES = [
         url="http://www.cire.pl/artykuly/energetyka?p=2",
         use_browser=True,
     ),
+    Site(
+        url="https://businessinsider.com.pl/gospodarka",
+        use_browser=False,
+    ),
+    Site(
+        url="https://businessinsider.com.pl/gospodarka?page=2",
+        use_browser=False,
+    ),
+    Site(
+        url="https://businessinsider.com.pl/biznes",
+        use_browser=False,
+    ),
+    Site(
+        url="https://businessinsider.com.pl/biznes?page=2",
+        use_browser=False,
+    ),
 ]

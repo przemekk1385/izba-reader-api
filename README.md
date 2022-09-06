@@ -40,11 +40,11 @@ Below articles that might be handy:
 
 *deploy-docker.sh*
 ```
-#!/bin/bash
 
 cd "$1"
 doppler run -t "$2" -- docker-compose down
-git pull
+git pull --all
+git checkout "$3"
 doppler run -t "$2" -- docker-compose up --build -d
 
 ```

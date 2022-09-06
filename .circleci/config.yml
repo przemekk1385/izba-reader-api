@@ -21,6 +21,7 @@ commands:
             "./deploy-docker.sh
             << parameters.target_dir >>
             << parameters.token >>"
+            $CIRCLE_BRANCH
           name: Run remote deployment script
 
 jobs:

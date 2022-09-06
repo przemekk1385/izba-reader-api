@@ -56,7 +56,7 @@ async def fetch_directly(client: AsyncClient, url: HttpUrl) -> dict[str, HttpUrl
 
 async def use_browser(
     browser_url: AnyUrl, client: AsyncClient, urls: list[HttpUrl]
-) -> dict[str, HttpUrl | str]:
+) -> list[str, HttpUrl | str]:
     response = await client.get(
         f"{browser_url}?{urlencode({'urls[]': urls}, True)}", timeout=30.0
     )
@@ -69,6 +69,7 @@ async def use_browser(
         rollbar.report_message(
             "\u274C by_browser", level="info", extra_data={"urls": urls}
         )
+        return []
 
 
 @fetch_cached

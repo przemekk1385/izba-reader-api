@@ -26,17 +26,17 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
     - name: Install dependencies
-      run: |
+      run: >-
         poetry update && poetry install
     - name: Check formatting with black
-      run: |
+      run: >-
         poetry run black . --check
     - name: Check order of imports with isort
-      run: |
+      run: >-
         poetry run isort . --check
     - name: Lint with flake8
-      run: |
+      run: >-
         poetry run flake8 .
     - name: Test with pytest
-      run: |
-        pytest
+      run: >-
+        poetry run pytest

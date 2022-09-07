@@ -27,7 +27,7 @@ jobs:
       uses: snok/install-poetry@v1
     - name: Install dependencies
       run: |
-        poetry install
+        poetry update && poetry install
     - name: Check formatting with black
       run: |
         poetry run black . --check

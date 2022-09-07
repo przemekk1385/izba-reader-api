@@ -18,8 +18,12 @@ jobs:
     services:
       browser:
         image: przemekk1385/browser:latest
+        ports:
+          - 3000
       redis:
         image: redis
+        ports:
+          - 6379
 
     steps:
     - uses: actions/checkout@v3

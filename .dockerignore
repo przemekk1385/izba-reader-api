@@ -1,11 +1,12 @@
 .circleci/
 .git/
-.pytest-cache/
+.idea/
+.pytest_cache/
 browser/
 media/
 tests/
 
-.doppler.yaml
+.dockderignore
 .env*
 .flake8
 .gitignore
@@ -14,4 +15,6 @@ tests/
 .python-version
 docker-compose*.yml
 Dockerfile
+doppler.yaml
+Makefile
 pytest.ini

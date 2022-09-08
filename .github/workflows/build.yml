@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "master" ]
 
+env:
+  BROWSER_URL: redis://redis:6379
+  REDIS_URL: http://browser:3000
+
 permissions:
   contents: read
 
@@ -18,12 +22,8 @@ jobs:
     services:
       browser:
         image: przemekk1385/browser:latest
-        ports:
-          - 3000
       redis:
         image: redis
-        ports:
-          - 6379
 
     steps:
     - uses: actions/checkout@v3

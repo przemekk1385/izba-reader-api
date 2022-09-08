@@ -3,6 +3,27 @@ version: 2.1
 orbs:
   python: circleci/python@1.5.0
 
+commands:
+  deploy:
+    parameters:
+      target_dir:
+        type: string
+        default: $CIRCLE_PROJECT_REPONAME
+      token:
+        type: string
+    steps:
+      - run:
+          command: >-
+            ssh
+            -oStrictHostKeyChecking=no
+            -v
+            $USER@$IP
+            "./deploy-docker.sh
+            << parameters.target_dir >>
+            << parameters.token >>"
+            $CIRCLE_BRANCH
+          name: Run remote deployment script
+
 jobs:
   build-and-test:
     docker:

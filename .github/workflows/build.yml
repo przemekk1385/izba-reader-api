@@ -7,8 +7,8 @@ on:
     branches: [ "master" ]
 
 env:
-  BROWSER_URL: redis://redis:6379
-  REDIS_URL: http://browser:3000
+  BROWSER_URL: http://browser:3000
+  REDIS_URL: redis://redis:6379
 
 permissions:
   contents: read

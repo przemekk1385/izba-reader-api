@@ -35,6 +35,6 @@ jobs:
           poetry run flake8 .
       - name: Test
         run: poetry run pytest
-      env:
-        BROWSER_URL: http://browser:3000
-        REDIS_URL: redis://redis:6379
+        env:
+          BROWSER_URL: http://browser:3000
+          REDIS_URL: redis://redis:6379

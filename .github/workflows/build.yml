@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Set up GNU C Library
-        run: apt-get install -y glibc
+        run: apt-get install -y libc6
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up Python

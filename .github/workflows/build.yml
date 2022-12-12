@@ -1,14 +1,6 @@
-name: Build
+name: build
 
-on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-
-env:
-  BROWSER_URL: http://browser:3000
-  REDIS_URL: redis://redis:6379
+on: [push]
 
 permissions:
   contents: read
@@ -26,24 +18,23 @@ jobs:
         image: redis
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Install libGL
-      run: >-
-        apt-get update && apt-get install -y libgl1
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-    - name: Install dependencies
-      run: >-
-        poetry update && poetry install
-    - name: Check code formatting with black
-      run: >-
-        poetry run black . --check
-    - name: Check order of imports with isort
-      run: >-
-        poetry run isort . --check
-    - name: Lint with flake8
-      run: >-
-        poetry run flake8 .
-    - name: Test with pytest
-      run: >-
-        poetry run pytest
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Set up Poetry
+        uses: abatilo/actions-poetry@v2
+      - name: Build
+        run: poetry install --no-root
+      - name: Lint
+        run: |
+          poetry run black . --check
+          poetry run isort . --check
+          poetry run flake8 .
+      - name: Test
+        run: poetry run pytest
+      env:
+        BROWSER_URL: http://browser:3000
+        REDIS_URL: redis://redis:6379

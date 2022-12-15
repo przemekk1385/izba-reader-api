@@ -1,11 +1,7 @@
-from pydantic import AnyUrl, BaseSettings
+from pydantic import AnyUrl, BaseSettings, EmailStr, HttpUrl
 
 
 class Settings(BaseSettings):
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
     ex: int = 8 * 60 * 60  # 8 hours
     browser_url: AnyUrl = "http://localhost:3000"
     redis_url: AnyUrl = "redis://localhost:6379"
@@ -13,7 +9,7 @@ class Settings(BaseSettings):
     api_key: str
     origins: list[AnyUrl]
 
-    mail_from: str
+    mail_from: EmailStr
     mail_password: str
     mail_port: int
     mail_server: str
@@ -21,4 +17,4 @@ class Settings(BaseSettings):
     mail_username: str
 
     environment: str = "production"
-    rollbar_access_token: str
+    sentry_dsn: HttpUrl

@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Callable, Generator
-from unittest.mock import Mock
 
 import cv2
 import numpy as np
@@ -30,19 +29,6 @@ async def flush_db(settings_override):
     await redis.flushdb()
 
 
-@pytest.fixture(scope="session", autouse=True)
-def session_mocked_rollbar(session_mocker) -> dict[str, Mock]:
-    return {
-        module: session_mocker.patch(module, return_value=Mock())
-        for module in (
-            "izba_reader.decorators.rollbar",
-            "izba_reader.main.rollbar",
-            "izba_reader.services.fetch.rollbar",
-            "izba_reader.services.send_mail.rollbar",
-        )
-    }
-
-
 @pytest.fixture
 def image_file(faker, tmp_path) -> Callable[[int, int], Path]:
     def make_image_file(height: int = 1, width: int = 1) -> Path:
@@ -63,13 +49,6 @@ def image_file(faker, tmp_path) -> Callable[[int, int], Path]:
 
 
 @pytest.fixture
-def mocked_rollbar(session_mocked_rollbar) -> Generator[dict[str, Mock], None, None]:
-    yield session_mocked_rollbar
-    for mocked_rollbar in session_mocked_rollbar.values():
-        mocked_rollbar.report_message.reset_mock()
-
-
-@pytest.fixture
 def settings_override(faker, mocker) -> Settings:
     email = faker.email()
     settings = Settings(
@@ -77,16 +56,17 @@ def settings_override(faker, mocker) -> Settings:
         origins=["http://test"],
         mail_from=email,
         mail_password=faker.password(),
-        mail_port=faker.port_number(is_system=True),
+        mail_port=587,
         mail_server=faker.domain_name(),
-        mail_subject=faker.sentence(),
+        mail_subject=faker.sentence()[:-1],
         mail_username=email,
         environment="test",
-        rollbar_access_token=faker.password(),
+        sentry_dsn="https://public@sentry.example.com/1",
     )
 
     app.dependency_overrides[get_settings] = lambda: settings
     mocker.patch("izba_reader.main.get_settings", return_value=settings)
     mocker.patch("izba_reader.services.fetch.get_settings", return_value=settings)
+    mocker.patch("izba_reader.services.mail.get_settings", return_value=settings)
 
     return settings

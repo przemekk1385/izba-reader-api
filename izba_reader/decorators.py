@@ -1,15 +1,15 @@
 from functools import wraps
 
-import rollbar
+from sentry_sdk import capture_exception
 
 
-def async_report_exceptions(func):
+def capture_background_task_exception(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
-        except Exception as e_info:  # noqa
-            rollbar.report_exc_info()
+        except Exception as exception:
+            capture_exception(exception)
             raise
 
     return wrapper

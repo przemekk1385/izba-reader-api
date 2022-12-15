@@ -1,0 +1,39 @@
+name: build
+
+on: [push]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: python:3.10-bullseye
+
+    services:
+      browser:
+        image: przemekk1385/browser:latest
+      redis:
+        image: redis
+
+    steps:
+      - name: Set up libGL
+        run: |
+          apt-get update
+          apt-get install -y libgl1
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Poetry
+        run: pip install poetry
+      - name: Build
+        run: poetry install --no-root
+      - name: Lint
+        run: |
+          poetry run black . --check
+          poetry run isort . --check
+          poetry run flake8 .
+      - name: Test
+        run: poetry run pytest
+        env:
+          BROWSER_URL: http://browser:3000
+          REDIS_URL: redis://redis:6379

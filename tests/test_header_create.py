@@ -7,7 +7,7 @@ from izba_reader import constants, routes
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("settings_override")
-async def test_ok(async_client, image_file, mocked_rollbar):
+async def test_ok(async_client, image_file):
     path = image_file(3000, 4000)
 
     with open(path, "rb") as img:
@@ -30,8 +30,6 @@ async def test_ok(async_client, image_file, mocked_rollbar):
 
     img = cv2.imread(str(constants.MEDIA_ROOT / f"{response_data['uuid']}.jpg"), 0)
     assert img.shape == (750, 1000)
-
-    mocked_rollbar["izba_reader.main.rollbar"].report_message.assert_called_once()
 
 
 @pytest.mark.asyncio

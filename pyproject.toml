@@ -7,30 +7,31 @@ authors = ["Przemysław Kaliś <przemek.kalis@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 aioredis = "^2.0.1"
-beautifulsoup4 = "^4.10.0"
-fastapi = "^0.75.0"
-fastapi-mail = "^1.0.6"
+beautifulsoup4 = "^4.11.1"
+fastapi = "^0.88.0"
 gunicorn = "^20.1.0"
-httpx = "^0.22.0"
-lxml = "^4.9.1"
-numpy = "^1.22.3"
-opencv-python = "^4.5.5"
+httpx = "^0.23.1"
+lxml = "^4.9.2"
+numpy = "^1.23.5"
+opencv-python = "^4.6.0.66"
 python-multipart = "^0.0.5"
-pytz = "^2021.3"
-rollbar = "^0.16.2"
-uvicorn = {extras = ["standard"], version = "^0.17.6"}
+pytz = "^2022.6"
+rollbar = "^0.16.3"
+uvicorn = "^0.20.0"
+pydantic = {extras = ["email"], version = "^1.10.2"}
+sentry-sdk = {extras = ["fastapi"], version = "^1.12.0"}
 
-[tool.poetry.dev-dependencies]
-asgi-lifespan = "^1.0.1"
-black = "^22.1.0"
-doppler-env = "^0.3.0"
-flake8 = "^4.0.1"
-Faker = "^13.3.0"
-isort = "^5.10.1"
-pre-commit = "^2.17.0"
-pytest = "^7.0.1"
-pytest-asyncio = "^0.18.3"
-pytest-mock = "^3.7.0"
+[tool.poetry.group.dev.dependencies]
+asgi-lifespan = "^2.0.0"
+black = "^22.12.0"
+doppler-env = "^0.3.1"
+faker = "^15.3.4"
+flake8 = "^6.0.0"
+isort = "^5.11.2"
+pre-commit = "^2.20.0"
+pytest = "^7.2.0"
+pytest-asyncio = "^0.20.3"
+pytest-mock = "^3.10.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -1,0 +1,5 @@
+run/gunicorn:
+	doppler run -c dev -- gunicorn -k izba_reader.workers.UvicornWorker -b 127.0.0.1:8000 izba_reader.main:app
+
+run/uvicorn:
+	doppler run -c dev -- uvicorn izba_reader.main:app --reload

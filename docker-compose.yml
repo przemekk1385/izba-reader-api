@@ -19,7 +19,7 @@ services:
       MAIL_USERNAME: ${APP_MAIL_USERNAME}
       ORIGINS: ${APP_ORIGINS}
       REDIS_URL: ${APP_REDIS_URL}
-      ROLLBAR_ACCESS_TOKEN: ${APP_ROLLBAR_ACCESS_TOKEN}
+      SENTRY_DSN: ${APP_SENTRY_DSN}
     command: >-
       gunicorn -k izba_reader.workers.UvicornWorker -b 0.0.0.0:8000 izba_reader.main:app
     depends_on:

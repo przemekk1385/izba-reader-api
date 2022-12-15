@@ -1,12 +1,11 @@
 import base64
 import itertools
-import sys
 from datetime import date, datetime, timedelta
 from uuid import UUID, uuid4
 
 import cv2
 import numpy as np
-import rollbar
+import sentry_sdk
 from aioredis import Redis
 from aioredis.exceptions import ConnectionError
 from fastapi import (
@@ -22,14 +21,12 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.models import APIKey
 from fastapi.staticfiles import StaticFiles
-from rollbar.contrib.fastapi import add_to as rollbar_add_to
 
 from izba_reader import constants, routes
 from izba_reader.constants import SITES
 from izba_reader.dependencies import get_api_key, get_redis, get_settings
 from izba_reader.models import Article, Header, Message, Review
 from izba_reader.openapi import custom_openapi
-from izba_reader.rollbar_handlers import ignore_handler
 from izba_reader.services import fetch, mail
 from izba_reader.services.parser import get_parser
 from izba_reader.settings import Settings
@@ -38,8 +35,6 @@ if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
 
 app = FastAPI()
-
-rollbar_add_to(app)
 
 app.mount(
     constants.MEDIA_URL,
@@ -52,8 +47,12 @@ app.openapi = custom_openapi
 @app.on_event("startup")
 async def startup_event():
     settings = get_settings()
-    rollbar.init(settings.rollbar_access_token, settings.environment)
-    rollbar.events.add_payload_handler(ignore_handler)
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment,
+        traces_sample_rate=1.0,
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -74,14 +73,10 @@ async def health(
     api_key: APIKey = Depends(get_api_key),
     redis: Redis = Depends(get_redis),
 ) -> None:
-    rollbar.report_message("Ping", level="info", request=request)
     try:
         await redis.ping()
     except ConnectionError:
-        rollbar.report_exc_info(sys.exc_info(), request)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
-    else:
-        rollbar.report_message("Pong", level="info", request=request)
 
 
 @app.get(routes.HEADER_LIST, response_model=list[UUID])
@@ -128,10 +123,6 @@ async def header_create(
 
     path = constants.MEDIA_ROOT / f"{uuid4()}.jpg"
     cv2.imwrite(str(path), img)
-
-    rollbar.report_message(
-        "Image uploaded", level="info", extra_data={"name": path.name}, request=request
-    )
 
     return {"size": img.size, "uuid": path.stem}
 
@@ -183,3 +174,13 @@ async def article_list(
         )
         if article.get("date", datetime.now()).date() >= dt
     ]
+
+
+@app.get(
+    routes.SENTRY_DEBUG,
+    responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"model": None}},
+    response_model=None,
+)
+async def sentry_debug(settings: Settings = Depends(get_settings)):
+    if settings.environment == "development":
+        _ = 1 / 0

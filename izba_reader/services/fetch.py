@@ -4,12 +4,11 @@ from typing import Callable, Coroutine
 from urllib.parse import urlencode
 
 import httpx
-import rollbar
 from aioredis import Redis
 from fastapi import Depends
-from httpx import AsyncClient
+from httpx import AsyncClient, HTTPStatusError
 from pydantic import AnyUrl, HttpUrl, parse_obj_as
-from starlette import status
+from sentry_sdk import capture_exception
 
 from izba_reader.constants import Site
 from izba_reader.dependencies import get_redis, get_settings
@@ -44,14 +43,17 @@ def fetch_cached(
 
 async def fetch_directly(client: AsyncClient, url: HttpUrl) -> dict[str, HttpUrl | str]:
     response = await client.get(url, follow_redirects=True)
-    if response.status_code == status.HTTP_200_OK:
-        rollbar.report_message("\u2705 directly", level="info", extra_data={"url": url})
-        return {
-            "url": url,
-            "content": response.text,
-        }
-    else:
-        rollbar.report_message("\u274C directly", level="info", extra_data={"url": url})
+
+    try:
+        response.raise_for_status()
+    except HTTPStatusError as http_status_error:
+        capture_exception(http_status_error)
+        return {"url": url, "content": ""}
+
+    return {
+        "url": url,
+        "content": response.text,
+    }
 
 
 async def use_browser(
@@ -60,16 +62,14 @@ async def use_browser(
     response = await client.get(
         f"{browser_url}?{urlencode({'urls[]': urls}, True)}", timeout=30.0
     )
-    if response.status_code == status.HTTP_200_OK:
-        rollbar.report_message(
-            "\u2705 by_browser", level="info", extra_data={"urls": urls}
-        )
-        return response.json()
-    else:
-        rollbar.report_message(
-            "\u274C by_browser", level="info", extra_data={"urls": urls}
-        )
+
+    try:
+        response.raise_for_status()
+    except HTTPStatusError as http_status_error:
+        capture_exception(http_status_error)
         return []
+
+    return response.json()
 
 
 @fetch_cached
@@ -87,7 +87,6 @@ async def get_sites(
             ],
         )
 
-        assert isinstance(ret, list)
         ret.extend(
             [
                 {

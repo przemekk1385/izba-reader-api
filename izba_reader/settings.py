@@ -1,4 +1,4 @@
-from pydantic import AnyUrl, BaseSettings, EmailStr
+from pydantic import AnyUrl, BaseSettings, EmailStr, HttpUrl
 
 
 class Settings(BaseSettings):
@@ -17,4 +17,4 @@ class Settings(BaseSettings):
     mail_username: str
 
     environment: str = "production"
-    rollbar_access_token: str
+    sentry_dsn: HttpUrl

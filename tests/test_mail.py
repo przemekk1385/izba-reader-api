@@ -49,7 +49,7 @@ def review(articles, faker):
 
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("settings_override")
-async def test_ok(async_client, mocked_rollbar, mocker, review):
+async def test_ok(async_client, mocker, review):
     mocked_smtplib = mocker.patch(
         "izba_reader.services.mail.smtplib", return_value=Mock()
     )
@@ -62,7 +62,3 @@ async def test_ok(async_client, mocked_rollbar, mocker, review):
         review["recipient"]
         in mocked_smtplib.SMTP().__enter__().send_message.call_args[0][0]["To"]
     )
-
-    mocked_rollbar[
-        "izba_reader.services.mail.rollbar"
-    ].report_message.assert_called_once()

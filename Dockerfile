@@ -8,7 +8,7 @@ RUN python -m pip install --upgrade pip
 RUN python -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN curl -sSL https://install.python-poetry.org | python3 -
+RUN pip install poetry
 
 WORKDIR /code
 

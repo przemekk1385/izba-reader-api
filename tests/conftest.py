@@ -38,7 +38,7 @@ def session_mocked_rollbar(session_mocker) -> dict[str, Mock]:
             "izba_reader.decorators.rollbar",
             "izba_reader.main.rollbar",
             "izba_reader.services.fetch.rollbar",
-            "izba_reader.services.send_mail.rollbar",
+            "izba_reader.services.mail.rollbar",
         )
     }
 

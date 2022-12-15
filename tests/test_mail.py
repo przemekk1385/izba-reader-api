@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
 from typing import Callable
-from urllib.parse import urlencode
+from unittest.mock import Mock
 
 import pytest
 from faker import Faker
 from faker.utils.text import slugify
 from fastapi import status
-from fastapi_mail import FastMail
 
 from izba_reader import routes
 
@@ -49,22 +48,21 @@ def review(articles, faker):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("template", (None, "iep.html"))
 @pytest.mark.usefixtures("settings_override")
-async def test_ok(template, async_client, mocked_rollbar, mocker, review):
-    mocked_send_message = mocker.patch.object(FastMail, "send_message")
-
-    url = (
-        f"{routes.MAIL_SEND}?{urlencode({'template': template})}"
-        if template
-        else routes.MAIL_SEND
+async def test_ok(async_client, mocked_rollbar, mocker, review):
+    mocked_smtplib = mocker.patch(
+        "izba_reader.services.mail.smtplib", return_value=Mock()
     )
-    response = await async_client.post(url, json=review)
+
+    response = await async_client.post(routes.MAIL_SEND, json=review)
 
     assert response.status_code == status.HTTP_202_ACCEPTED, response.json()
 
-    assert review["recipient"] in mocked_send_message.call_args[0][0].recipients
+    assert (
+        review["recipient"]
+        in mocked_smtplib.SMTP().__enter__().send_message.call_args[0][0]["To"]
+    )
 
     mocked_rollbar[
-        "izba_reader.services.send_mail.rollbar"
+        "izba_reader.services.mail.rollbar"
     ].report_message.assert_called_once()

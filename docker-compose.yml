@@ -8,22 +8,21 @@ services:
     build:
       context: .
     environment:
-      - API_KEY
-      - APP_PORT
-      - BROWSER_URL
-      - ENVIRONMENT
-      - MAIL_FROM
-      - MAIL_PASSWORD
-      - MAIL_PORT
-      - MAIL_SERVER
-      - MAIL_SUBJECT
-      - MAIL_USERNAME
-      - ORIGINS
-      - REDIS_URL
-      - ROLLBAR_ACCESS_TOKEN
+      API_KEY: ${APP_API_KEY}
+      BROWSER_URL: ${APP_BROWSER_URL}
+      ENVIRONMENT: ${APP_ENVIRONMENT}
+      MAIL_FROM: ${APP_MAIL_FROM}
+      MAIL_PASSWORD: ${APP_MAIL_PASSWORD}
+      MAIL_PORT: ${APP_MAIL_PORT}
+      MAIL_SERVER: ${APP_MAIL_SERVER}
+      MAIL_SUBJECT: ${APP_MAIL_SUBJECT}
+      MAIL_USERNAME: ${APP_MAIL_USERNAME}
+      ORIGINS: ${APP_ORIGINS}
+      REDIS_URL: ${APP_REDIS_URL}
+      ROLLBAR_ACCESS_TOKEN: ${APP_ROLLBAR_ACCESS_TOKEN}
     command: >-
       gunicorn -k izba_reader.workers.UvicornWorker -b 0.0.0.0:8000 izba_reader.main:app
     depends_on:
       - browser
       - redis
-    ports: ["${APP_PORT}:8000"]
+    ports: ["${APP_SERVICE_PORT}:8000"]

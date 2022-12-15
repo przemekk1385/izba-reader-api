@@ -1,6 +1,6 @@
 FROM python:3.10-slim-bullseye
 
-RUN apt-get update && apt-get install -y libgl1 netcat
+RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 netcat
 
 ENV VIRTUAL_ENV=/usr/local/python
 

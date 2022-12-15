@@ -21,7 +21,10 @@ services:
       REDIS_URL: ${APP_REDIS_URL}
       SENTRY_DSN: ${APP_SENTRY_DSN}
     command: >-
-      gunicorn -k izba_reader.workers.UvicornWorker -b 0.0.0.0:8000 izba_reader.main:app
+      gunicorn izba_reader.main:app
+      --workers 4
+      --worker-class uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8000
     depends_on:
       - browser
       - redis

@@ -1,15 +1,19 @@
-FROM python:3.10.4-bullseye
+FROM python:3.10-slim-bullseye
 
 RUN apt-get update && apt-get install -y libgl1 netcat
 
-RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-ENV PATH="${PATH}:/root/.poetry/bin"
+ENV VIRTUAL_ENV=/usr/local/python
 
-RUN poetry config virtualenvs.create false
+RUN python -m pip install --upgrade pip
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
 WORKDIR /code
-COPY ./ .
 
-RUN poetry install --no-dev
+COPY . /code/
 
-ENTRYPOINT ["./entrypoint.sh"]
+RUN poetry install --without=dev
+
+ENTRYPOINT ["/code/entrypoint.sh"]

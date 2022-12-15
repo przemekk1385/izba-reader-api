@@ -1,5 +1,5 @@
-.circleci/
 .git/
+.github/
 .idea/
 .pytest_cache/
 browser/
@@ -16,5 +16,5 @@ tests/
 docker-compose*.yml
 Dockerfile
 doppler.yaml
-Makefile
+Makefile*
 pytest.ini

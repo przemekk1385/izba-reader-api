@@ -1,0 +1,14 @@
+docker/build:
+	doppler run -c dev_docker -- docker compose build
+
+docker/build/dev:
+	doppler run -c dev -- docker compose -f docker-compose.dev.yml build
+
+docker/stop:
+	docker ps -qf name="^$(basename $(pwd)).+$" | xargs -L1 docker stop
+
+docker/up:
+	doppler run -c dev_docker -- docker compose up -d
+
+docker/up/dev:
+	doppler run -c dev -- docker compose -f docker-compose.dev.yml up -d

@@ -43,23 +43,16 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
 )
 
+settings = get_settings()
 
-def set_up_app() -> FastAPI:
-    settings = get_settings()
-
-    app_ = FastAPI()
-    app_.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    return app_
-
-
-app = set_up_app()
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.mount(
     constants.MEDIA_URL,
     StaticFiles(directory=constants.MEDIA_ROOT),

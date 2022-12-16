@@ -1,6 +1,5 @@
 import base64
-import itertools
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from uuid import UUID, uuid4
 
 import cv2
@@ -30,6 +29,7 @@ from izba_reader.openapi import custom_openapi
 from izba_reader.services import fetch, mail
 from izba_reader.services.parser import get_parser
 from izba_reader.settings import Settings
+from izba_reader.utils import get_border_date
 
 if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
@@ -165,17 +165,26 @@ async def article_list(
     api_key: APIKey = Depends(get_api_key),
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
-) -> list[Article]:
-    articles = await fetch.get_sites(SITES, redis=redis, settings=settings)
-    dt = date.today() - timedelta(days=1)
+) -> list[dict]:
+    sites = await fetch.get_sites(SITES, redis=redis, settings=settings)
 
-    return [
-        article
-        for article in itertools.chain(
-            *[get_parser(url.host)(feed) for url, feed in articles.items()]
-        )
-        if article.get("date", datetime.now()).date() >= dt
-    ]
+    ret = []
+    for url, document in sites.items():
+        parser = get_parser(url.host)
+        all_articles = parser(document)
+
+        latest_articles = [
+            article
+            for article in all_articles
+            if article.get("date", datetime.now()).date() >= get_border_date()
+        ]
+
+        if latest_articles:
+            ret.extend(latest_articles)
+        else:
+            ret.extend(all_articles[: constants.FALLBACK_ARTICLES_COUNT])
+
+    return ret
 
 
 @app.get(

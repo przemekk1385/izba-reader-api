@@ -3,14 +3,14 @@ from email.message import EmailMessage
 
 from fastapi import Depends, Request
 
-from izba_reader.decorators import capture_background_task_exception
+from izba_reader.decorators import capture_exception
 from izba_reader.dependencies import get_settings
 from izba_reader.models import Article, Review
 from izba_reader.settings import Settings
 
 
-@capture_background_task_exception
-async def send(
+@capture_exception
+def send(
     review: Review, request: Request, settings: Settings = Depends(get_settings)
 ) -> None:
     def format_article(article: Article) -> str:

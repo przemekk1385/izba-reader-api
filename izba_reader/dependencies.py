@@ -4,13 +4,11 @@ from fastapi.params import Security
 from fastapi.security import APIKeyHeader
 from pydantic import ValidationError
 
-from izba_reader.decorators import capture_exception
 from izba_reader.settings import Settings
 
 _api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 
 
-@capture_exception
 def get_settings() -> Settings:
     try:
         return Settings()

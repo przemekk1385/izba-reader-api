@@ -5,7 +5,6 @@ class Settings(BaseSettings):
     ex: int = 8 * 60 * 60  # 8 hours
     browser_url: AnyUrl = "http://localhost:3000"
     redis_url: AnyUrl = "redis://localhost:6379"
-    root_path: str = ""
 
     api_key: str
     origins: list[AnyUrl]

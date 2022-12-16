@@ -43,4 +43,16 @@ SITES = [
         url="https://businessinsider.com.pl/biznes?page=2",
         use_browser=False,
     ),
+    Site(
+        url="https://wysokienapiecie.pl/kategoria/oze/",
+        use_browser=False,
+    ),
+    Site(
+        url="https://wysokienapiecie.pl/kategoria/klimat/",
+        use_browser=False,
+    ),
+    Site(
+        url="https://wysokienapiecie.pl/kategoria/energetyka-konwencjonalna/",
+        use_browser=False,
+    ),
 ]

@@ -19,13 +19,13 @@ services:
       MAIL_USERNAME: ${APP_MAIL_USERNAME}
       ORIGINS: ${APP_ORIGINS}
       REDIS_URL: ${APP_REDIS_URL}
-      ROOT_PATH: ${APP_ROOT_PATH}
       SENTRY_DSN: ${APP_SENTRY_DSN}
     command: >-
-      gunicorn izba_reader.main:app
-      --bind 0.0.0.0:8000
+      uvicorn izba_reader.main:app
+      --host 0.0.0.0
+      --port 8000
+      --root-path ${APP_ROOT_PATH}
       --workers 4
-      --worker-class uvicorn.workers.UvicornWorker
     depends_on:
       - browser
       - redis

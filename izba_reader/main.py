@@ -34,19 +34,18 @@ from izba_reader.settings import Settings
 if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
 
-app = FastAPI()
 
-app.mount(
-    constants.MEDIA_URL,
-    StaticFiles(directory=constants.MEDIA_ROOT),
-    name=constants.MEDIA_ROOT.name,
-)
-app.openapi = custom_openapi
-
-
-@app.on_event("startup")
-async def startup_event():
+def set_up_app() -> FastAPI:
     settings = get_settings()
+
+    app_ = FastAPI(root_path=settings.root_path)
+    app_.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
@@ -54,13 +53,16 @@ async def startup_event():
         traces_sample_rate=1.0,
     )
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    return app_
+
+
+app = set_up_app()
+app.mount(
+    constants.MEDIA_URL,
+    StaticFiles(directory=constants.MEDIA_ROOT),
+    name=constants.MEDIA_ROOT.name,
+)
+app.openapi = custom_openapi
 
 
 @app.get(

@@ -97,10 +97,29 @@ def businessinsider_com_pl(page: str) -> list[dict]:
     ]
 
 
+def wysokienapiecie_pl(page: str) -> list[dict]:
+    soup = BeautifulSoup(page, features="lxml")
+
+    return [
+        {
+            "title": tag.select_one("a.tease-title").text.strip(),
+            "description": tag.select_one("p.tease-excerpt").text.strip(),
+            "url": tag.select_one("a.tease-title").attrs["href"],
+            "date": datetime.strptime(
+                tag.select_one("div.tease-meta time").attrs["datetime"],
+                "%Y-%m-%d %H:%M:%S",
+            ),
+        }
+        for tag in soup.select("article.tease-post")
+        if not tag.select_one("span.tag-premium")
+    ]
+
+
 def get_parser(host: str) -> Callable[[str], list[dict]]:
     return {
         "www.cire.pl": cire_pl,
         "biznesalert.pl": biznesalert_pl,
         "www.wnp.pl": wnp_pl,
         "businessinsider.com.pl": businessinsider_com_pl,
+        "wysokienapiecie.pl": wysokienapiecie_pl,
     }.get(host, lambda _: list())

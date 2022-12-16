@@ -38,7 +38,7 @@ if not constants.MEDIA_ROOT.is_dir():
 def set_up_app() -> FastAPI:
     settings = get_settings()
 
-    app_ = FastAPI(root_path=settings.root_path)
+    app_ = FastAPI()
     app_.add_middleware(
         CORSMiddleware,
         allow_origins=settings.origins,

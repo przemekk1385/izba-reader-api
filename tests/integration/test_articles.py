@@ -5,7 +5,6 @@ from izba_reader import routes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_ok(async_client):
     response = await async_client.get(routes.ARTICLE_LIST)
 

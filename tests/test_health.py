@@ -1,21 +1,24 @@
 import pytest
 from starlette import status
 
-from izba_reader import app, routes
-from izba_reader.dependencies import get_settings
+from izba_reader.main import routes
 
 
 @pytest.fixture
-def break_redis(faker, settings_override):
-    settings_override.redis_url = (
-        f"redis://{faker.uri_path(deep=1)}:{faker.port_number(is_dynamic=True)}"
-    )
+def break_redis(faker, settings):
+    from izba_reader.dependencies import get_settings
+    from izba_reader.main import app
 
-    app.dependency_overrides[get_settings] = lambda: settings_override
+    redis_url = settings.redis_url
+    settings.redis_url = "redis://non-existing-host:9999"
+
+    app.dependency_overrides[get_settings] = lambda: settings
+    yield
+
+    settings.redis_url = redis_url
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_ok(async_client):
     response = await async_client.get(routes.HEALTH_LIST)
 

@@ -6,7 +6,6 @@ from izba_reader import constants, routes
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_ok(async_client, image_file):
     path = image_file(3000, 4000)
 
@@ -33,7 +32,6 @@ async def test_ok(async_client, image_file):
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_invalid_mime_type(async_client):
     with open(__file__, "rb") as f:
         response = await async_client.post(
@@ -55,7 +53,6 @@ async def test_invalid_mime_type(async_client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_invalid_aspect_ratio(async_client, image_file):
     path = image_file(1000, 2000)
 

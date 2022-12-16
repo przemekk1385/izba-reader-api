@@ -48,7 +48,6 @@ def review(articles, faker):
 
 
 @pytest.mark.asyncio
-@pytest.mark.usefixtures("settings_override")
 async def test_ok(async_client, mocker, review):
     mocked_smtplib = mocker.patch(
         "izba_reader.services.mail.smtplib", return_value=Mock()

@@ -29,10 +29,19 @@ from izba_reader.openapi import custom_openapi
 from izba_reader.services import fetch, mail
 from izba_reader.services.parser import get_parser
 from izba_reader.settings import Settings
-from izba_reader.utils import get_border_date
+from izba_reader.utils import get_border_date, get_env
 
 if not constants.MEDIA_ROOT.is_dir():
     constants.MEDIA_ROOT.mkdir()
+
+sentry_dsn = get_env("SENTRY_DSN")
+environment = get_env("ENVIRONMENT")
+
+sentry_sdk.init(
+    dsn=sentry_dsn,
+    environment=environment,
+    traces_sample_rate=1.0,
+)
 
 
 def set_up_app() -> FastAPI:
@@ -45,12 +54,6 @@ def set_up_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-    )
-
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn,
-        environment=settings.environment,
-        traces_sample_rate=1.0,
     )
 
     return app_

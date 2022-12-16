@@ -56,3 +56,5 @@ SITES = [
         use_browser=False,
     ),
 ]
+
+FALLBACK_ARTICLES_COUNT = 3

@@ -1,15 +1,15 @@
 from functools import wraps
 
-from sentry_sdk import capture_exception
+from sentry_sdk import capture_exception as sentry_capture_exception
 
 
-def capture_background_task_exception(func):
+def capture_exception(func):
     @wraps(func)
-    async def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs):
         try:
-            return await func(*args, **kwargs)
+            return func(*args, **kwargs)
         except Exception as exception:
-            capture_exception(exception)
+            sentry_capture_exception(exception)
             raise
 
     return wrapper

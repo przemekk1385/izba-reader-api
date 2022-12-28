@@ -33,8 +33,8 @@ async def _fetch(
 @retry(
     reraise=True,
     retry=retry_if_exception_type(httpx.ReadTimeout),
-    stop=stop_after_attempt(6),
-    wait=wait_exponential(min=1, max=16),
+    stop=stop_after_attempt(4),
+    wait=wait_exponential(min=1),
 )
 async def _fetch_directly(
     url: HttpUrl, client: AsyncClient, settings: Settings = Depends(get_settings)
@@ -59,13 +59,15 @@ async def _fetch_directly(
 @retry(
     reraise=True,
     retry=retry_if_exception_type(httpx.ReadTimeout),
-    stop=stop_after_attempt(6),
-    wait=wait_exponential(min=1, max=16),
+    stop=stop_after_attempt(4),
+    wait=wait_exponential(min=1),
 )
 async def _fetch_using_browser(
     url: BrowsableUrl, client: AsyncClient, settings: Settings = Depends(get_settings)
 ) -> dict[str, BrowsableUrl | str]:
-    response = await client.get(f"{settings.browser_url}?{urlencode({'urls': url})}")
+    response = await client.get(
+        f"{settings.browser_url}?{urlencode({'urls': url})}", timeout=30
+    )
 
     try:
         response.raise_for_status()

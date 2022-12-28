@@ -10,8 +10,7 @@ class Site(BaseModel):
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MEDIA_ROOT = BASE_DIR / "media"
-MEDIA_URL = "/media/"
+FALLBACK_ARTICLES_COUNT = 3
 
 SITES = [
     Site(url="https://biznesalert.pl/category/energetyka/feed/", use_browser=False),
@@ -56,5 +55,3 @@ SITES = [
         use_browser=False,
     ),
 ]
-
-FALLBACK_ARTICLES_COUNT = 3

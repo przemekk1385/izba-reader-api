@@ -20,12 +20,6 @@ from izba_reader.dependencies import get_redis, get_settings
 from izba_reader.settings import Settings
 
 
-@retry(
-    reraise=True,
-    retry=retry_if_exception_type(httpx.ReadTimeout),
-    stop=stop_after_attempt(6),
-    wait=wait_exponential(min=1, max=16),
-)
 @singledispatch
 async def _fetch(
     url: HttpUrl,
@@ -36,6 +30,12 @@ async def _fetch(
 
 
 @_fetch.register
+@retry(
+    reraise=True,
+    retry=retry_if_exception_type(httpx.ReadTimeout),
+    stop=stop_after_attempt(6),
+    wait=wait_exponential(min=1, max=16),
+)
 async def _fetch_directly(
     url: HttpUrl, client: AsyncClient, settings: Settings = Depends(get_settings)
 ) -> dict[str, HttpUrl | str]:
@@ -56,6 +56,12 @@ async def _fetch_directly(
 
 
 @_fetch.register
+@retry(
+    reraise=True,
+    retry=retry_if_exception_type(httpx.ReadTimeout),
+    stop=stop_after_attempt(6),
+    wait=wait_exponential(min=1, max=16),
+)
 async def _fetch_using_browser(
     url: BrowsableUrl, client: AsyncClient, settings: Settings = Depends(get_settings)
 ) -> dict[str, BrowsableUrl | str]:

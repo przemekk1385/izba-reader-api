@@ -11,14 +11,11 @@ beautifulsoup4 = "^4.11.1"
 fastapi = "^0.88.0"
 httpx = "^0.23.1"
 lxml = "^4.9.2"
-numpy = "^1.23.5"
-opencv-python = "^4.6.0.66"
-python-multipart = "^0.0.5"
 pytz = "^2022.6"
-rollbar = "^0.16.3"
 uvicorn = "^0.20.0"
 pydantic = {extras = ["email"], version = "^1.10.2"}
 sentry-sdk = {extras = ["fastapi"], version = "^1.12.0"}
+tenacity = "^8.1.0"
 
 [tool.poetry.group.dev.dependencies]
 asgi-lifespan = "^2.0.0"

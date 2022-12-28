@@ -89,7 +89,7 @@ async def fetch(
     redis: Redis = Depends(get_redis),
     settings: Settings = Depends(get_settings),
 ) -> dict[HttpUrl, str]:
-    cached_contents = {url: await redis.get(str(url)) for url in urls}
+    cached_documents = {url: await redis.get(str(url)) for url in urls}
 
     transport = httpx.AsyncHTTPTransport(retries=3)
     async with httpx.AsyncClient(transport=transport) as client:
@@ -98,7 +98,7 @@ async def fetch(
             *[
                 _fetch(url, client, settings=settings)
                 for url in urls
-                if not cached_contents[url]
+                if not cached_documents[url]
             ],
             return_exceptions=True,
         )
@@ -119,4 +119,7 @@ async def fetch(
                 ex=settings.ex,
             )
 
-        return {document["url"]: document["content"] for document in documents}
+        return {
+            **{document["url"]: document["content"] for document in documents},
+            **{url: content for url, content in cached_documents.items()},
+        }

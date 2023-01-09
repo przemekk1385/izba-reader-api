@@ -1,4 +1,4 @@
-uvicorn:
+uvicorn/run:
 	doppler secrets get APP_ROOT_PATH --plain \
 | xargs -I {} doppler run -c dev -- \
 uvicorn izba_reader.main:app \

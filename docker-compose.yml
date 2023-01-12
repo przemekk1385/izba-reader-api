@@ -30,6 +30,8 @@ services:
     depends_on:
       - browser
     ports: ["${APP_SERVICE_PORT:-8000}:8000"]
+    networks:
+      - shared_services
 
 networks:
   shared_services:

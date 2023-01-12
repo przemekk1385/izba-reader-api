@@ -3,8 +3,6 @@ version: "3.9"
 services:
   browser:
     image: przemekk1385/browser:latest
-  redis:
-    image: redis
   app:
     build:
       context: .
@@ -31,4 +29,8 @@ services:
       - browser
       - redis
     ports: ["${APP_SERVICE_PORT:-8000}:8000"]
+
+networks:
+  shared_services:
+    external: true
 

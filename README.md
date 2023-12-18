@@ -11,7 +11,6 @@ All variables that do not have a default value must be set to get the app up and
 | Name                                | Description                                      | Default                 |
 |-------------------------------------|--------------------------------------------------|-------------------------|
 | API_KEY                             | API key                                          |
-| SERVICE_PORT                        | port the app runs on (`docker-compose.yml` only) |
 | BROWSER_URL                         | browser service URL                              | http://localhost:3000   |
 | ENVIRONMENT                         | environment name                                 | production              |
 | EX                                  | cache expiration time                            | 28800 seconds (8 hours) |

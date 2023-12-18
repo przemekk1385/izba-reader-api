@@ -1,4 +1,5 @@
 version: "3.9"
+
 services:
   browser:
     image: przemekk1385/browser:latest-arm64_v8
@@ -8,3 +9,4 @@ services:
     image: redis
     ports:
       - "6379:6379"
+

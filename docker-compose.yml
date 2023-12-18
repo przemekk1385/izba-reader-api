@@ -1,12 +1,13 @@
 version: "3.9"
+
 services:
   browser:
     image: przemekk1385/browser:latest
-  redis:
-    image: redis
+    restart: always
   app:
     build:
       context: .
+    restart: always
     environment:
       API_KEY: ${APP_API_KEY}
       BROWSER_URL: ${APP_BROWSER_URL}
@@ -28,5 +29,10 @@ services:
       --workers 4
     depends_on:
       - browser
-      - redis
-    ports: ["${APP_SERVICE_PORT}:8000"]
+    ports: ["127.0.0.1:8001:8000"]
+    networks:
+      - shared_services
+
+networks:
+  shared_services:
+    external: true

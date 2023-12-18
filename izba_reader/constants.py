@@ -1,60 +1,28 @@
 from pathlib import Path
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import HttpUrl, parse_obj_as
 
 
-class Site(BaseModel):
-    url: HttpUrl
-    use_browser: bool
+class BrowsableUrl(HttpUrl):
+    pass
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MEDIA_ROOT = BASE_DIR / "media"
-MEDIA_URL = "/media/"
-
-SITES = [
-    Site(url="https://biznesalert.pl/category/energetyka/feed/", use_browser=False),
-    Site(
-        url="http://www.wnp.pl/rss/serwis_rss_1.xml/",
-        use_browser=False,
-    ),
-    Site(
-        url="http://www.cire.pl/artykuly/energetyka?p=1",
-        use_browser=True,
-    ),
-    Site(
-        url="http://www.cire.pl/artykuly/energetyka?p=2",
-        use_browser=True,
-    ),
-    Site(
-        url="https://businessinsider.com.pl/gospodarka",
-        use_browser=False,
-    ),
-    Site(
-        url="https://businessinsider.com.pl/gospodarka?page=2",
-        use_browser=False,
-    ),
-    Site(
-        url="https://businessinsider.com.pl/biznes",
-        use_browser=False,
-    ),
-    Site(
-        url="https://businessinsider.com.pl/biznes?page=2",
-        use_browser=False,
-    ),
-    Site(
-        url="https://wysokienapiecie.pl/kategoria/oze/",
-        use_browser=False,
-    ),
-    Site(
-        url="https://wysokienapiecie.pl/kategoria/klimat/",
-        use_browser=False,
-    ),
-    Site(
-        url="https://wysokienapiecie.pl/kategoria/energetyka-konwencjonalna/",
-        use_browser=False,
-    ),
-]
-
 FALLBACK_ARTICLES_COUNT = 3
+
+URLS = [
+    parse_obj_as(HttpUrl, "https://biznesalert.pl/category/energetyka/feed/"),
+    parse_obj_as(HttpUrl, "http://www.wnp.pl/rss/serwis_rss_1.xml/"),
+    parse_obj_as(HttpUrl, "https://businessinsider.com.pl/gospodarka"),
+    parse_obj_as(HttpUrl, "https://businessinsider.com.pl/gospodarka?page=2"),
+    parse_obj_as(HttpUrl, "https://businessinsider.com.pl/biznes"),
+    parse_obj_as(HttpUrl, "https://businessinsider.com.pl/biznes?page=2"),
+    parse_obj_as(HttpUrl, "https://wysokienapiecie.pl/kategoria/oze/"),
+    parse_obj_as(HttpUrl, "https://wysokienapiecie.pl/kategoria/klimat/"),
+    parse_obj_as(
+        HttpUrl, "https://wysokienapiecie.pl/kategoria/energetyka-konwencjonalna/"
+    ),
+    parse_obj_as(BrowsableUrl, "http://www.cire.pl/artykuly/energetyka?p=1"),
+    parse_obj_as(BrowsableUrl, "http://www.cire.pl/artykuly/energetyka?p=2"),
+]
